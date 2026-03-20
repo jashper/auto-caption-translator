@@ -17,7 +17,7 @@ let secondarySubtitleData = [];
 let subtitleUpdateInterval = null;
 
 // 追蹤模式
-let trackPlaybackEnabled = true;
+let trackPlaybackEnabled = false;
 
 // DOM 元素
 const uploadArea = document.getElementById('upload-area');
@@ -164,10 +164,14 @@ function setupEventListeners() {
             case 'KeyT':
                 // T 鍵：切換追蹤模式
                 e.preventDefault();
-                const trackToggle = document.getElementById('track-playback-toggle');
-                if (trackToggle) {
-                    trackToggle.checked = !trackToggle.checked;
-                    trackPlaybackEnabled = trackToggle.checked;
+                const trackBtn = document.getElementById('track-playback-btn');
+                if (trackBtn) {
+                    trackPlaybackEnabled = !trackPlaybackEnabled;
+                    if (trackPlaybackEnabled) {
+                        trackBtn.classList.add('active');
+                    } else {
+                        trackBtn.classList.remove('active');
+                    }
                 }
                 break;
                 
@@ -209,11 +213,18 @@ function setupEventListeners() {
     // 設定滾動監聽（用於畫中畫）
     setupPiPObserver();
     
-    // 追蹤模式切換
-    const trackPlaybackToggle = document.getElementById('track-playback-toggle');
-    if (trackPlaybackToggle) {
-        trackPlaybackToggle.addEventListener('change', (e) => {
-            trackPlaybackEnabled = e.target.checked;
+    // 追蹤模式切換按鈕
+    const trackPlaybackBtn = document.getElementById('track-playback-btn');
+    if (trackPlaybackBtn) {
+        trackPlaybackBtn.addEventListener('click', () => {
+            trackPlaybackEnabled = !trackPlaybackEnabled;
+            
+            // 切換按鈕狀態
+            if (trackPlaybackEnabled) {
+                trackPlaybackBtn.classList.add('active');
+            } else {
+                trackPlaybackBtn.classList.remove('active');
+            }
         });
     }
 }

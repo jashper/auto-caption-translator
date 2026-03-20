@@ -587,52 +587,28 @@ h3 {
     align-items: center;
 }
 
-/* ===== Toggle Switch ===== */
-.toggle-switch {
+/* ===== 追蹤播放按鈕 ===== */
+.track-btn {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    cursor: pointer;
-    user-select: none;
+    transition: all 0.2s ease;
 }
 
-.toggle-switch input[type="checkbox"] {
-    display: none;
+.track-btn .track-icon {
+    font-size: 16px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
 }
 
-.toggle-slider {
-    position: relative;
-    width: 44px;
-    height: 24px;
-    background: var(--color-border);
-    border-radius: 12px;
-    transition: background 0.3s ease;
-}
-
-.toggle-slider::before {
-    content: '';
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: white;
-    top: 3px;
-    left: 3px;
-    transition: transform 0.3s ease;
-}
-
-.toggle-switch input[type="checkbox"]:checked + .toggle-slider {
+.track-btn.active {
     background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
 }
 
-.toggle-switch input[type="checkbox"]:checked + .toggle-slider::before {
-    transform: translateX(20px);
-}
-
-.toggle-label {
-    font-size: var(--font-size-sm);
-    color: var(--color-text);
-    font-weight: 500;
+.track-btn.active .track-icon {
+    opacity: 1;
 }
 
 .language-select {

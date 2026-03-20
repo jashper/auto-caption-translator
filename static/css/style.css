@@ -465,11 +465,34 @@ h3 {
     margin-bottom: var(--spacing-xl);
 }
 
+.download-subsection {
+    margin-bottom: var(--spacing-xl);
+}
+
+.subsection-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: var(--spacing-sm);
+}
+
+.subsection-hint {
+    color: var(--color-text-light);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.section-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: var(--spacing-xl) 0;
+}
+
 .download-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 0;
 }
 
 .download-card {
@@ -523,38 +546,106 @@ h3 {
 }
 
 /* ===== 合併字幕區 ===== */
-.merge-subtitle-section {
-    padding: var(--spacing-lg);
-    background: var(--color-bg-light);
-    border-radius: 12px;
-    margin-bottom: var(--spacing-lg);
+.merge-language-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
 }
 
-.merge-subtitle-section h3 {
-    margin-bottom: var(--spacing-sm);
+.language-card {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
 }
 
-.merge-subtitle-hint {
-    color: var(--color-text-light);
+.language-card input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.language-card .card-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    transition: all 0.2s ease;
+    min-height: 60px;
+}
+
+.language-card:hover .card-content {
+    border-color: var(--color-primary);
+}
+
+.language-card input[type="checkbox"]:checked + .card-content {
+    border-color: var(--color-primary);
+    background: #eff6ff;
+}
+
+.language-card .card-title {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--color-text);
+    text-align: center;
+}
+
+.language-card input[type="checkbox"]:checked + .card-content .card-title {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.merge-hint {
     font-size: var(--font-size-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 8px;
     margin-bottom: var(--spacing-md);
+    text-align: center;
+    background: var(--color-bg-light);
+    color: var(--color-text-light);
 }
 
-.merge-subtitle-section .language-checkboxes {
-    margin-bottom: var(--spacing-md);
+.merge-hint.success {
+    background: #f0fdf4;
+    color: var(--color-success);
+    font-weight: 500;
 }
 
-.merge-subtitle-section .btn {
-    width: 100%;
+.merge-hint.error {
+    background: #fef2f2;
+    color: var(--color-error);
+    font-weight: 500;
+}
+
+.merge-controls {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: flex-end;
+}
+
+.merge-format-group {
+    flex: 0 0 200px;
+}
+
+.control-label {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-xs);
+    font-weight: 500;
+}
+
+.merge-controls .btn {
+    flex: 1;
 }
 
 .batch-download {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
-    padding: var(--spacing-lg);
-    background: var(--color-bg-light);
-    border-radius: 12px;
 }
 
 .batch-download .btn {

@@ -494,19 +494,21 @@ function showResults(subtitleFiles) {
         }
     }
     
-    // 生成合併字幕複選框
-    const mergeLanguageCheckboxes = document.getElementById('merge-language-checkboxes');
-    mergeLanguageCheckboxes.innerHTML = '';
+    // 生成合併字幕複選框（卡片式）
+    const mergeLanguageCards = document.getElementById('merge-language-cards');
+    mergeLanguageCards.innerHTML = '';
     if (subtitleFiles) {
         for (const lang of Object.keys(subtitleFiles)) {
             const name = languages[lang] || lang;
             const label = document.createElement('label');
-            label.className = 'checkbox-label';
+            label.className = 'language-card';
             label.innerHTML = `
                 <input type="checkbox" name="merge-language" value="${lang}">
-                <span>${name}</span>
+                <span class="card-content">
+                    <span class="card-title">${name}</span>
+                </span>
             `;
-            mergeLanguageCheckboxes.appendChild(label);
+            mergeLanguageCards.appendChild(label);
         }
     }
     
@@ -848,12 +850,28 @@ async function batchDownload() {
 // 更新合併按鈕狀態
 function updateMergeButtonState() {
     const checkboxes = document.querySelectorAll('input[name="merge-language"]:checked');
-    const generateMergedBtn = document.getElementById('generate-merged-btn');
+    const count = checkboxes.length;
+    const hint = document.getElementById('merge-selection-hint');
+    const btn = document.getElementById('generate-merged-btn');
     
-    if (checkboxes.length >= 2 && checkboxes.length <= 3) {
-        generateMergedBtn.disabled = false;
+    if (!hint || !btn) return;
+    
+    if (count === 0) {
+        hint.textContent = '請選擇 2-3 種語言';
+        hint.className = 'merge-hint';
+        btn.disabled = true;
+    } else if (count === 1) {
+        hint.textContent = '✗ 請至少選擇 2 種語言';
+        hint.className = 'merge-hint error';
+        btn.disabled = true;
+    } else if (count >= 2 && count <= 3) {
+        hint.textContent = `✓ 已選擇 ${count} 種語言`;
+        hint.className = 'merge-hint success';
+        btn.disabled = false;
     } else {
-        generateMergedBtn.disabled = true;
+        hint.textContent = '✗ 最多選擇 3 種語言';
+        hint.className = 'merge-hint error';
+        btn.disabled = true;
     }
 }
 
@@ -869,6 +887,10 @@ async function generateMergedSubtitle() {
         return;
     }
     
+    // 讀取格式選擇
+    const formatSelect = document.getElementById('merge-format-select');
+    const format = formatSelect ? formatSelect.value : 'srt';
+    
     const generateMergedBtn = document.getElementById('generate-merged-btn');
     generateMergedBtn.disabled = true;
     generateMergedBtn.textContent = '生成中...';
@@ -881,7 +903,7 @@ async function generateMergedSubtitle() {
             },
             body: JSON.stringify({
                 languages: selectedLanguages,
-                format: 'srt'
+                format: format
             })
         });
         
@@ -895,7 +917,7 @@ async function generateMergedSubtitle() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `merged_${selectedLanguages.join('_')}.srt`;
+        a.download = `merged_${selectedLanguages.join('_')}.${format}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

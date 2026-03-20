@@ -122,26 +122,54 @@
             <!-- 下載區 -->
             <div class="download-section">
                 <h3>下載字幕</h3>
-                <div id="download-cards" class="download-cards"></div>
                 
-                <!-- 合併字幕（高級） -->
-                <div class="merge-subtitle-section">
-                    <h3>合併字幕（高級）</h3>
-                    <p class="merge-subtitle-hint">選擇 2-3 種語言合併為單一字幕檔案（垂直排列）</p>
-                    <div id="merge-language-checkboxes" class="language-checkboxes"></div>
-                    <button id="generate-merged-btn" class="btn btn-secondary" disabled>
-                        生成合併字幕
-                    </button>
+                <!-- 單語言下載 -->
+                <div class="download-subsection">
+                    <h4 class="subsection-title">單語言下載</h4>
+                    <div id="download-cards" class="download-cards"></div>
                 </div>
                 
-                <div class="batch-download">
-                    <button id="batch-download-btn" class="btn btn-secondary">
-                        批量下載所有字幕
-                    </button>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="include-video-checkbox">
-                        <span>包含影片</span>
-                    </label>
+                <!-- 分隔線 -->
+                <div class="section-divider"></div>
+                
+                <!-- 合併字幕下載 -->
+                <div class="download-subsection">
+                    <h4 class="subsection-title">合併字幕下載</h4>
+                    <p class="subsection-hint">選擇 2-3 種語言合併為單一字幕檔案（垂直排列）</p>
+                    
+                    <div class="merge-language-cards" id="merge-language-cards"></div>
+                    
+                    <div id="merge-selection-hint" class="merge-hint">請選擇 2-3 種語言</div>
+                    
+                    <div class="merge-controls">
+                        <div class="merge-format-group">
+                            <label class="control-label">格式</label>
+                            <select id="merge-format-select" class="format-select">
+                                <option value="vtt">VTT 格式</option>
+                                <option value="srt" selected>SRT 格式</option>
+                            </select>
+                        </div>
+                        <button id="generate-merged-btn" class="btn btn-secondary" disabled>
+                            生成合併字幕
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 分隔線 -->
+                <div class="section-divider"></div>
+                
+                <!-- 批量下載 -->
+                <div class="download-subsection">
+                    <h4 class="subsection-title">批量下載</h4>
+                    <div class="batch-download">
+                        <button id="batch-download-btn" class="btn btn-secondary">
+                            下載所有字幕（ZIP）
+                        </button>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="include-video-checkbox">
+                            <span>包含影片</span>
+                        </label>
+                    </div>
                 </div>
             </div>
             

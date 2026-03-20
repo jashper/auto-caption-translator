@@ -662,6 +662,17 @@ h3 {
 .subtitle-edit-item.active {
     border-left-color: var(--color-primary);
     background: #eff6ff;
+    position: relative;
+}
+
+.subtitle-edit-item.active::before {
+    content: '▶';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-primary);
+    font-size: 12px;
 }
 
 .subtitle-edit-item.editing {

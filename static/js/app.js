@@ -820,7 +820,8 @@ function activatePiP() {
         pipVideo.play();
     }
     
-    // 暫停主影片
+    // 靜音主影片（避免雙音軌）
+    videoPlayer.muted = true;
     videoPlayer.pause();
     
     // 顯示畫中畫容器
@@ -848,6 +849,9 @@ function closePiP() {
     
     // 同步時間回主影片
     videoPlayer.currentTime = pipVideo.currentTime;
+    
+    // 取消靜音主影片
+    videoPlayer.muted = false;
     
     // 同步播放狀態
     if (!pipVideo.paused) {

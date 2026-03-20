@@ -11,6 +11,11 @@ let availableLanguages = {};
 let pipActive = false;
 let videoObserver = null;
 
+// 自定義字幕相關
+let primarySubtitleData = [];
+let secondarySubtitleData = [];
+let subtitleUpdateInterval = null;
+
 // DOM 元素
 const uploadArea = document.getElementById('upload-area');
 const fileInput = document.getElementById('file-input');
@@ -428,40 +433,35 @@ function showResults(subtitleFiles) {
     }
 }
 
-// 載入影片字幕（VTT track）
+// 載入影片字幕（使用自定義渲染）
 async function loadVideoSubtitle(mode) {
-    const trackPrimary = document.getElementById('video-track-primary');
-    const trackSecondary = document.getElementById('video-track-secondary');
+    const videoContainer = document.getElementById('video-container');
+    
+    // 停止之前的字幕更新
+    if (subtitleUpdateInterval) {
+        clearInterval(subtitleUpdateInterval);
+        subtitleUpdateInterval = null;
+    }
+    
+    // 清空字幕數據
+    primarySubtitleData = [];
+    secondarySubtitleData = [];
     
     if (mode === 'single') {
         const primarySubtitleSelect = document.getElementById('primary-subtitle-select');
         const selectedLang = primarySubtitleSelect.value;
         
-        // 清除副字幕
-        trackSecondary.src = '';
-        trackSecondary.mode = 'disabled';
+        videoContainer.classList.remove('subtitle-mode-dual');
+        videoContainer.classList.add('subtitle-mode-single');
         
         if (!selectedLang) {
-            // 移除主字幕
-            trackPrimary.src = '';
-            trackPrimary.mode = 'disabled';
-            videoPlayer.classList.remove('dual-subtitle');
+            // 清除字幕顯示
+            clearCustomSubtitles();
             return;
         }
         
-        // 設定主字幕
-        const languages = {
-            'en': 'English',
-            'zh-TW': '繁體中文',
-            'zh-CN': '簡體中文',
-            'ms': 'Bahasa Melayu'
-        };
-        
-        trackPrimary.src = `/download/${currentJobId}/${selectedLang}`;
-        trackPrimary.srclang = selectedLang;
-        trackPrimary.label = languages[selectedLang] || selectedLang;
-        trackPrimary.mode = 'showing';
-        videoPlayer.classList.remove('dual-subtitle');
+        // 載入主字幕數據
+        await loadSubtitleData(selectedLang, 'primary');
         
     } else if (mode === 'dual') {
         const primarySubtitleSelectDual = document.getElementById('primary-subtitle-select-dual');
@@ -470,40 +470,115 @@ async function loadVideoSubtitle(mode) {
         const primaryLang = primarySubtitleSelectDual.value;
         const secondaryLang = secondarySubtitleSelect.value;
         
-        const languages = {
-            'en': 'English',
-            'zh-TW': '繁體中文',
-            'zh-CN': '簡體中文',
-            'ms': 'Bahasa Melayu'
-        };
+        videoContainer.classList.remove('subtitle-mode-single');
+        videoContainer.classList.add('subtitle-mode-dual');
         
-        // 設定主字幕
-        if (primaryLang) {
-            trackPrimary.src = `/download/${currentJobId}/${primaryLang}`;
-            trackPrimary.srclang = primaryLang;
-            trackPrimary.label = languages[primaryLang] || primaryLang;
-            trackPrimary.mode = 'showing';
-        } else {
-            trackPrimary.src = '';
-            trackPrimary.mode = 'disabled';
+        if (!primaryLang && !secondaryLang) {
+            clearCustomSubtitles();
+            return;
         }
         
-        // 設定副字幕
+        // 載入主字幕和副字幕數據
+        if (primaryLang) {
+            await loadSubtitleData(primaryLang, 'primary');
+        }
         if (secondaryLang) {
-            trackSecondary.src = `/download/${currentJobId}/${secondaryLang}`;
-            trackSecondary.srclang = secondaryLang;
-            trackSecondary.label = languages[secondaryLang] || secondaryLang;
-            trackSecondary.mode = 'showing';
-            videoPlayer.classList.add('dual-subtitle');
-        } else {
-            trackSecondary.src = '';
-            trackSecondary.mode = 'disabled';
-            videoPlayer.classList.remove('dual-subtitle');
+            await loadSubtitleData(secondaryLang, 'secondary');
         }
     }
     
-    // 重新載入影片以應用字幕
-    videoPlayer.load();
+    // 啟動字幕更新循環
+    startSubtitleUpdate();
+}
+
+// 載入字幕數據
+async function loadSubtitleData(language, type) {
+    try {
+        const response = await fetch(`/preview/${currentJobId}/${language}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || '載入字幕失敗');
+        }
+        
+        // 轉換為時間戳格式
+        const subtitleData = data.subtitles.map(sub => ({
+            start: parseTimeToSeconds(sub.start_time),
+            end: parseTimeToSeconds(sub.end_time),
+            text: sub.text
+        }));
+        
+        if (type === 'primary') {
+            primarySubtitleData = subtitleData;
+        } else {
+            secondarySubtitleData = subtitleData;
+        }
+        
+    } catch (error) {
+        console.error(`載入 ${language} 字幕失敗:`, error);
+    }
+}
+
+// 啟動字幕更新
+function startSubtitleUpdate() {
+    if (subtitleUpdateInterval) {
+        clearInterval(subtitleUpdateInterval);
+    }
+    
+    // 每 100ms 更新一次字幕顯示
+    subtitleUpdateInterval = setInterval(updateCustomSubtitles, 100);
+}
+
+// 更新自定義字幕顯示
+function updateCustomSubtitles() {
+    if (!videoPlayer) return;
+    
+    const currentTime = videoPlayer.currentTime;
+    const primaryText = document.getElementById('primary-subtitle-text');
+    const secondaryText = document.getElementById('secondary-subtitle-text');
+    
+    // 更新主字幕
+    const primarySub = findCurrentSubtitle(primarySubtitleData, currentTime);
+    if (primarySub) {
+        primaryText.textContent = primarySub.text;
+        primaryText.classList.add('show');
+    } else {
+        primaryText.classList.remove('show');
+    }
+    
+    // 更新副字幕
+    const secondarySub = findCurrentSubtitle(secondarySubtitleData, currentTime);
+    if (secondarySub) {
+        secondaryText.textContent = secondarySub.text;
+        secondaryText.classList.add('show');
+    } else {
+        secondaryText.classList.remove('show');
+    }
+}
+
+// 查找當前時間對應的字幕
+function findCurrentSubtitle(subtitleData, currentTime) {
+    return subtitleData.find(sub => currentTime >= sub.start && currentTime <= sub.end);
+}
+
+// 清除自定義字幕
+function clearCustomSubtitles() {
+    const primaryText = document.getElementById('primary-subtitle-text');
+    const secondaryText = document.getElementById('secondary-subtitle-text');
+    
+    if (primaryText) {
+        primaryText.textContent = '';
+        primaryText.classList.remove('show');
+    }
+    if (secondaryText) {
+        secondaryText.textContent = '';
+        secondaryText.classList.remove('show');
+    }
+    
+    if (subtitleUpdateInterval) {
+        clearInterval(subtitleUpdateInterval);
+        subtitleUpdateInterval = null;
+    }
 }
 
 // 載入字幕進行編輯

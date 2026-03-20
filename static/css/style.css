@@ -295,15 +295,56 @@ h3 {
     max-height: 600px;
 }
 
+/* 隱藏原生字幕軌道 */
 #video-player::cue {
-    font-size: 18px;
-    opacity: 1;
-    background: rgba(0, 0, 0, 0.8);
+    display: none;
 }
 
-/* 雙語字幕樣式 */
-#video-player.dual-subtitle::cue {
+/* ===== 自定義字幕疊加層 ===== */
+.custom-subtitle-overlay {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: none;
+    z-index: 10;
+    max-width: 90%;
+}
+
+.primary-subtitle-text,
+.secondary-subtitle-text {
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 4px;
+    margin: 4px 0;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    display: inline-block;
+}
+
+.primary-subtitle-text {
     font-size: 18px;
+    color: #ffffff;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.secondary-subtitle-text {
+    font-size: 14px;
+    color: #e2e8f0;
+    opacity: 0.7;
+    line-height: 1.4;
+}
+
+.primary-subtitle-text.show,
+.secondary-subtitle-text.show {
+    opacity: 1;
+}
+
+/* 單語言模式 - 只顯示主字幕 */
+.subtitle-mode-single .secondary-subtitle-text {
+    display: none;
 }
 
 /* ===== 字幕顯示設置 ===== */

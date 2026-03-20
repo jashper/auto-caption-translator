@@ -66,12 +66,17 @@
             <h2>完成</h2>
             
             <!-- 影片播放器 -->
-            <div class="video-container">
+            <div class="video-container" id="video-container">
                 <video id="video-player" controls>
                     <track id="video-track-primary" kind="subtitles" srclang="en" label="English">
                     <track id="video-track-secondary" kind="subtitles" srclang="" label="">
                     您的瀏覽器不支援影片播放。
                 </video>
+                <!-- 自定義字幕疊加層 -->
+                <div id="custom-subtitle-overlay" class="custom-subtitle-overlay">
+                    <div id="primary-subtitle-text" class="primary-subtitle-text"></div>
+                    <div id="secondary-subtitle-text" class="secondary-subtitle-text"></div>
+                </div>
             </div>
             
             <!-- 字幕顯示設置 -->

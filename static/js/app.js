@@ -876,31 +876,51 @@ function escapeHtml(text) {
 
 // ===== 畫中畫 (Picture-in-Picture) 功能 =====
 
-// 設定畫中畫觀察器
+// 設定畫中畫觀察器（使用滾動事件）
 function setupPiPObserver() {
-    // 使用 Intersection Observer 監測影片是否在視窗內
-    const options = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.5 // 當影片有 50% 不在視窗內時觸發
-    };
+    let pipHintTimeout = null;
     
-    videoObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            // 如果影片不在視窗內且正在播放，啟動畫中畫
-            if (!entry.isIntersecting && videoPlayer && !videoPlayer.paused) {
-                activatePiP();
-            } else if (entry.isIntersecting && pipActive) {
-                // 如果影片回到視窗內，關閉畫中畫
-                closePiP();
+    window.addEventListener('scroll', () => {
+        const videoContainer = document.getElementById('video-container');
+        const pipHint = document.getElementById('pip-hint');
+        
+        if (!videoContainer || !pipHint || !videoPlayer) return;
+        
+        // 計算影片容器頂部距離視窗頂部的距離
+        const rect = videoContainer.getBoundingClientRect();
+        const distanceFromTop = rect.top;
+        
+        // 如果畫中畫已啟動，檢查是否需要關閉
+        if (pipActive && distanceFromTop > -50) {
+            closePiP();
+            return;
+        }
+        
+        // 如果畫中畫未啟動，檢查是否需要顯示提示或啟動
+        if (!pipActive) {
+            // 當影片頂部超過視窗頂部 50px 時，顯示提示
+            if (distanceFromTop < -50 && distanceFromTop > -100) {
+                pipHint.classList.add('show');
+                
+                // 清除之前的超時
+                if (pipHintTimeout) {
+                    clearTimeout(pipHintTimeout);
+                }
+                
+                // 2 秒後自動隱藏提示
+                pipHintTimeout = setTimeout(() => {
+                    pipHint.classList.remove('show');
+                }, 2000);
+            } else {
+                pipHint.classList.remove('show');
             }
-        });
-    }, options);
-    
-    // 開始觀察影片元素
-    if (videoPlayer) {
-        videoObserver.observe(videoPlayer);
-    }
+            
+            // 當影片頂部超過視窗頂部 100px 且正在播放時，啟動畫中畫
+            if (distanceFromTop < -100 && !videoPlayer.paused) {
+                activatePiP();
+            }
+        }
+    });
 }
 
 // 啟動畫中畫

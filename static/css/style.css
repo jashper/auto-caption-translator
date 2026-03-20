@@ -347,6 +347,30 @@ h3 {
     display: none;
 }
 
+/* ===== 畫中畫觸發提示 ===== */
+.pip-hint {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--color-primary);
+    color: white;
+    text-align: center;
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(100%);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 11;
+}
+
+.pip-hint.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 /* ===== 字幕顯示設置 ===== */
 .subtitle-settings {
     margin-bottom: var(--spacing-xl);

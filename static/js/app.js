@@ -2,6 +2,10 @@
 let selectedFile = null;
 let currentJobId = null;
 let pollInterval = null;
+let currentSubtitles = [];
+let originalSubtitles = [];
+let currentLanguage = 'en';
+let isEditing = false;
 
 // DOM 元素
 const uploadArea = document.getElementById('upload-area');
@@ -14,9 +18,16 @@ const progressFill = document.getElementById('progress-fill');
 const progressText = document.getElementById('progress-text');
 const stageText = document.getElementById('stage-text');
 const downloadArea = document.getElementById('download-area');
-const languageSelect = document.getElementById('language-select');
-const previewArea = document.getElementById('preview-area');
 const errorMessage = document.getElementById('error-message');
+
+// 新增的 DOM 元素
+const videoPlayer = document.getElementById('video-player');
+const editLanguageSelect = document.getElementById('edit-language-select');
+const subtitleEditorArea = document.getElementById('subtitle-editor-area');
+const saveSubtitlesBtn = document.getElementById('save-subtitles-btn');
+const resetSubtitlesBtn = document.getElementById('reset-subtitles-btn');
+const batchDownloadBtn = document.getElementById('batch-download-btn');
+const includeVideoCheckbox = document.getElementById('include-video-checkbox');
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -41,8 +52,24 @@ function setupEventListeners() {
     // 上傳按鈕
     uploadBtn.addEventListener('click', uploadFile);
     
-    // 語言選擇
-    languageSelect.addEventListener('change', loadPreview);
+    // 編輯器控制
+    if (editLanguageSelect) {
+        editLanguageSelect.addEventListener('change', loadSubtitlesForEdit);
+    }
+    if (saveSubtitlesBtn) {
+        saveSubtitlesBtn.addEventListener('click', saveSubtitles);
+    }
+    if (resetSubtitlesBtn) {
+        resetSubtitlesBtn.addEventListener('click', resetSubtitles);
+    }
+    if (batchDownloadBtn) {
+        batchDownloadBtn.addEventListener('click', batchDownload);
+    }
+    
+    // 影片播放器事件
+    if (videoPlayer) {
+        videoPlayer.addEventListener('timeupdate', syncSubtitles);
+    }
 }
 
 // 處理檔案選擇
@@ -207,7 +234,10 @@ function showResults(subtitleFiles) {
     progressSection.style.display = 'none';
     resultSection.style.display = 'block';
     
-    // 生成下載按鈕（只顯示已生成的語言）
+    // 設定影片播放器
+    videoPlayer.src = `/video/${currentJobId}`;
+    
+    // 生成下載按鈕
     const languages = {
         'en': 'English',
         'zh-TW': '繁體中文',
@@ -221,72 +251,241 @@ function showResults(subtitleFiles) {
     if (subtitleFiles) {
         for (const lang of Object.keys(subtitleFiles)) {
             const name = languages[lang] || lang;
-            const btn = document.createElement('a');
-            btn.href = `/download/${currentJobId}/${lang}`;
-            btn.className = 'download-btn';
-            btn.download = '';
-            btn.innerHTML = `
+            
+            // VTT 下載按鈕
+            const vttBtn = document.createElement('a');
+            vttBtn.href = `/download/${currentJobId}/${lang}`;
+            vttBtn.className = 'download-btn';
+            vttBtn.download = '';
+            vttBtn.innerHTML = `
                 <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-                ${name}
+                ${name} (VTT)
             `;
-            downloadArea.appendChild(btn);
+            downloadArea.appendChild(vttBtn);
+            
+            // SRT 下載按鈕
+            const srtBtn = document.createElement('a');
+            srtBtn.href = `/download/${currentJobId}/${lang}/srt`;
+            srtBtn.className = 'download-btn';
+            srtBtn.download = '';
+            srtBtn.innerHTML = `
+                <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                ${name} (SRT)
+            `;
+            downloadArea.appendChild(srtBtn);
         }
     }
     
-    // 更新語言選擇器（只顯示可用的語言）
-    languageSelect.innerHTML = '';
+    // 更新編輯器語言選擇器
+    editLanguageSelect.innerHTML = '';
     if (subtitleFiles) {
         for (const lang of Object.keys(subtitleFiles)) {
             const name = languages[lang] || lang;
             const option = document.createElement('option');
             option.value = lang;
             option.textContent = name;
-            languageSelect.appendChild(option);
+            editLanguageSelect.appendChild(option);
         }
     }
     
-    // 載入預覽
-    loadPreview();
+    // 載入第一個語言的字幕進行編輯
+    if (Object.keys(subtitleFiles).length > 0) {
+        currentLanguage = Object.keys(subtitleFiles)[0];
+        editLanguageSelect.value = currentLanguage;
+        loadSubtitlesForEdit();
+    }
 }
 
-// 載入字幕預覽
-async function loadPreview() {
+// 載入字幕進行編輯
+async function loadSubtitlesForEdit() {
     if (!currentJobId) return;
     
-    const language = languageSelect.value;
+    currentLanguage = editLanguageSelect.value;
     
     try {
-        const response = await fetch(`/preview/${currentJobId}/${language}`);
+        const response = await fetch(`/preview/${currentJobId}/${currentLanguage}`);
         const data = await response.json();
         
         if (!response.ok) {
-            throw new Error(data.error || '載入預覽失敗');
+            throw new Error(data.error || '載入字幕失敗');
         }
         
-        // 顯示字幕
-        previewArea.innerHTML = '';
-        data.subtitles.forEach(subtitle => {
-            const item = document.createElement('div');
-            item.className = 'subtitle-item';
-            item.innerHTML = `
-                <div class="subtitle-time">${subtitle.start_time} --> ${subtitle.end_time}</div>
-                <div class="subtitle-text">${subtitle.text}</div>
-            `;
-            previewArea.appendChild(item);
-        });
+        currentSubtitles = data.subtitles;
+        originalSubtitles = JSON.parse(JSON.stringify(data.subtitles)); // 深拷貝
+        
+        renderSubtitleEditor();
         
     } catch (error) {
-        previewArea.innerHTML = `<p style="color: #c33;">載入預覽失敗: ${error.message}</p>`;
+        showError('載入字幕失敗', error.message);
     }
+}
+
+// 渲染字幕編輯器
+function renderSubtitleEditor() {
+    subtitleEditorArea.innerHTML = '';
+    
+    currentSubtitles.forEach((subtitle, idx) => {
+        const item = document.createElement('div');
+        item.className = 'subtitle-edit-item';
+        item.dataset.index = subtitle.index;
+        item.dataset.startTime = subtitle.start_time;
+        item.dataset.endTime = subtitle.end_time;
+        
+        item.innerHTML = `
+            <div class="subtitle-time-edit" onclick="seekToTime(${parseTimeToSeconds(subtitle.start_time)})">
+                ${subtitle.start_time} --> ${subtitle.end_time}
+            </div>
+            <div class="subtitle-text-edit" contenteditable="true" data-idx="${idx}">
+                ${escapeHtml(subtitle.text)}
+            </div>
+        `;
+        
+        // 監聽編輯事件
+        const textEdit = item.querySelector('.subtitle-text-edit');
+        textEdit.addEventListener('input', () => {
+            currentSubtitles[idx].text = textEdit.textContent;
+        });
+        
+        textEdit.addEventListener('focus', () => {
+            item.classList.add('editing');
+        });
+        
+        textEdit.addEventListener('blur', () => {
+            item.classList.remove('editing');
+        });
+        
+        subtitleEditorArea.appendChild(item);
+    });
+}
+
+// 同步字幕高亮（影片播放時）
+function syncSubtitles() {
+    if (!videoPlayer || !currentSubtitles.length) return;
+    
+    const currentTime = videoPlayer.currentTime;
+    
+    // 找到當前時間對應的字幕
+    const items = subtitleEditorArea.querySelectorAll('.subtitle-edit-item');
+    items.forEach(item => {
+        const startTime = parseFloat(item.dataset.startTime.split(':').reduce((acc, time) => (60 * acc) + +time));
+        const endTime = parseFloat(item.dataset.endTime.split(':').reduce((acc, time) => (60 * acc) + +time));
+        
+        if (currentTime >= startTime && currentTime <= endTime) {
+            item.classList.add('active');
+            // 自動滾動到當前字幕
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
+
+// 跳轉到指定時間
+function seekToTime(seconds) {
+    if (videoPlayer) {
+        videoPlayer.currentTime = seconds;
+        videoPlayer.play();
+    }
+}
+
+// 解析時間字串為秒數
+function parseTimeToSeconds(timeStr) {
+    const parts = timeStr.split(':');
+    const hours = parseInt(parts[0]);
+    const minutes = parseInt(parts[1]);
+    const seconds = parseFloat(parts[2]);
+    return hours * 3600 + minutes * 60 + seconds;
+}
+
+// 儲存字幕
+async function saveSubtitles() {
+    if (!currentJobId || !currentLanguage) return;
+    
+    saveSubtitlesBtn.disabled = true;
+    saveSubtitlesBtn.textContent = '儲存中...';
+    
+    try {
+        // 準備字幕數據
+        const subtitlesData = currentSubtitles.map(sub => ({
+            index: sub.index,
+            start_time: parseTimeToSeconds(sub.start_time),
+            end_time: parseTimeToSeconds(sub.end_time),
+            text: sub.text
+        }));
+        
+        const response = await fetch(`/subtitle/${currentJobId}/${currentLanguage}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(subtitlesData)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || '儲存失敗');
+        }
+        
+        // 更新原始字幕
+        originalSubtitles = JSON.parse(JSON.stringify(currentSubtitles));
+        
+        showSuccess('儲存成功', '字幕已更新');
+        
+    } catch (error) {
+        showError('儲存失敗', error.message);
+    } finally {
+        saveSubtitlesBtn.disabled = false;
+        saveSubtitlesBtn.textContent = '儲存修改';
+    }
+}
+
+// 重置字幕
+function resetSubtitles() {
+    if (confirm('確定要重置所有修改嗎？')) {
+        currentSubtitles = JSON.parse(JSON.stringify(originalSubtitles));
+        renderSubtitleEditor();
+        showSuccess('已重置', '字幕已恢復到上次儲存的狀態');
+    }
+}
+
+// 批量下載
+async function batchDownload() {
+    if (!currentJobId) return;
+    
+    const includeVideo = includeVideoCheckbox.checked;
+    const url = `/download-all/${currentJobId}?include_video=${includeVideo}`;
+    
+    // 直接下載
+    window.location.href = url;
+}
+
+// 顯示成功訊息
+function showSuccess(title, message) {
+    // 可以使用與 showError 類似的方式，或者使用不同的樣式
+    const successDiv = document.createElement('div');
+    successDiv.className = 'success-message';
+    successDiv.innerHTML = `<strong>${title}:</strong> ${message}`;
+    successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #d4edda; border: 2px solid #28a745; color: #155724; padding: 15px 20px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+    
+    document.body.appendChild(successDiv);
+    
+    setTimeout(() => {
+        successDiv.remove();
+    }, 3000);
 }
 
 // 顯示錯誤訊息
 function showError(title, message) {
-    errorMessage.innerHTML = `<strong>${title}</strong>${message}`;
+    errorMessage.innerHTML = `<strong>${title}:</strong> ${message}`;
     errorMessage.style.display = 'block';
     
     // 3 秒後自動隱藏
@@ -296,4 +495,11 @@ function showError(title, message) {
 // 隱藏錯誤訊息
 function hideError() {
     errorMessage.style.display = 'none';
+}
+
+// HTML 轉義
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }

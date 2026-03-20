@@ -5,6 +5,7 @@ FastAPI 主應用程式
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import List
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, status, Form, Body
 from fastapi.responses import FileResponse, StreamingResponse
@@ -362,6 +363,241 @@ async def preview_subtitle(job_id: str, language: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"error": "預覽失敗", "error_code": "PREVIEW_FAILED", "details": str(e)}
+        )
+
+
+@app.get("/video/{job_id}")
+async def get_video(job_id: str):
+    """
+    取得影片檔案（用於播放器）
+    
+    Args:
+        job_id: 任務識別碼
+        
+    Returns:
+        影片檔案
+    """
+    try:
+        # 檢查任務狀態
+        state = job_manager.get_job_status(job_id)
+        
+        if not state.video_path or not Path(state.video_path).exists():
+            error_response = get_error_response("FILE_NOT_FOUND")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=error_response.dict()
+            )
+        
+        # 回傳影片檔案
+        return FileResponse(
+            state.video_path,
+            media_type="video/mp4",
+            filename=state.video_filename
+        )
+    except HTTPException:
+        raise
+    except FileNotFoundError:
+        error_response = get_error_response("JOB_NOT_FOUND")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_response.dict()
+        )
+    except Exception as e:
+        logger.error(f"取得影片失敗: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "取得影片失敗", "error_code": "VIDEO_FETCH_FAILED", "details": str(e)}
+        )
+
+
+@app.put("/subtitle/{job_id}/{language}")
+async def update_subtitle(job_id: str, language: str, subtitles: List[dict]):
+    """
+    更新字幕內容
+    
+    Args:
+        job_id: 任務識別碼
+        language: 語言代碼
+        subtitles: 更新後的字幕列表
+        
+    Returns:
+        更新結果
+    """
+    try:
+        # 檢查任務狀態
+        state = job_manager.get_job_status(job_id)
+        
+        if state.status.value != "completed":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": "任務尚未完成", "error_code": "JOB_NOT_COMPLETED"}
+            )
+        
+        # 轉換為 SubtitleSegment 對象
+        from src.models.subtitle import SubtitleSegment
+        segments = []
+        for sub in subtitles:
+            segment = SubtitleSegment(
+                index=sub["index"],
+                start_time=sub["start_time"],
+                end_time=sub["end_time"],
+                text=sub["text"],
+                language=language
+            )
+            segments.append(segment)
+        
+        # 重新生成字幕檔案
+        subtitle_path = file_storage.get_subtitle_path(job_id, language)
+        subtitle_generator.generate_vtt(segments, subtitle_path, language)
+        
+        logger.info(f"已更新字幕: {job_id} ({language})")
+        
+        return {"success": True, "message": "字幕已更新"}
+    except HTTPException:
+        raise
+    except FileNotFoundError:
+        error_response = get_error_response("JOB_NOT_FOUND")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_response.dict()
+        )
+    except Exception as e:
+        logger.error(f"更新字幕失敗: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "更新字幕失敗", "error_code": "UPDATE_FAILED", "details": str(e)}
+        )
+
+
+@app.get("/download-all/{job_id}")
+async def download_all_subtitles(job_id: str, include_video: bool = False):
+    """
+    批量下載所有字幕（ZIP 格式）
+    
+    Args:
+        job_id: 任務識別碼
+        include_video: 是否包含影片檔案
+        
+    Returns:
+        ZIP 檔案
+    """
+    try:
+        import zipfile
+        import tempfile
+        
+        # 檢查任務狀態
+        state = job_manager.get_job_status(job_id)
+        
+        if state.status.value != "completed":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": "任務尚未完成", "error_code": "JOB_NOT_COMPLETED"}
+            )
+        
+        # 創建臨時 ZIP 檔案
+        temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+        
+        with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # 添加所有字幕檔案
+            for lang, subtitle_path in state.subtitle_files.items():
+                if Path(subtitle_path).exists():
+                    # 使用原始影片名稱作為基礎
+                    base_name = state.video_filename.rsplit('.', 1)[0]
+                    arcname = f"{base_name}_{lang}.vtt"
+                    zipf.write(subtitle_path, arcname)
+            
+            # 如果需要，添加影片檔案
+            if include_video and state.video_path and Path(state.video_path).exists():
+                zipf.write(state.video_path, state.video_filename)
+        
+        # 回傳 ZIP 檔案
+        base_name = state.video_filename.rsplit('.', 1)[0]
+        zip_filename = f"{base_name}_subtitles.zip"
+        
+        return FileResponse(
+            temp_zip.name,
+            media_type="application/zip",
+            filename=zip_filename
+        )
+    except HTTPException:
+        raise
+    except FileNotFoundError:
+        error_response = get_error_response("JOB_NOT_FOUND")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_response.dict()
+        )
+    except Exception as e:
+        logger.error(f"批量下載失敗: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "批量下載失敗", "error_code": "BATCH_DOWNLOAD_FAILED", "details": str(e)}
+        )
+
+
+@app.get("/download/{job_id}/{language}/srt")
+async def download_subtitle_srt(job_id: str, language: str):
+    """
+    下載 SRT 格式字幕
+    
+    Args:
+        job_id: 任務識別碼
+        language: 語言代碼
+        
+    Returns:
+        SRT 字幕檔案
+    """
+    try:
+        # 檢查任務狀態
+        state = job_manager.get_job_status(job_id)
+        
+        if state.status.value != "completed":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": "任務尚未完成", "error_code": "JOB_NOT_COMPLETED"}
+            )
+        
+        # 取得 VTT 字幕檔案
+        vtt_path = file_storage.get_subtitle_path(job_id, language)
+        
+        if not Path(vtt_path).exists():
+            error_response = get_error_response("FILE_NOT_FOUND")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=error_response.dict()
+            )
+        
+        # 解析 VTT 並轉換為 SRT
+        segments = subtitle_generator.parse_vtt(vtt_path)
+        
+        # 生成 SRT 內容
+        srt_content = subtitle_generator.generate_srt_content(segments)
+        
+        # 創建臨時 SRT 檔案
+        import tempfile
+        temp_srt = tempfile.NamedTemporaryFile(delete=False, suffix='.srt', mode='w', encoding='utf-8')
+        temp_srt.write(srt_content)
+        temp_srt.close()
+        
+        # 回傳檔案
+        return FileResponse(
+            temp_srt.name,
+            media_type="text/plain",
+            filename=f"{state.video_filename.rsplit('.', 1)[0]}_{language}.srt"
+        )
+    except HTTPException:
+        raise
+    except FileNotFoundError:
+        error_response = get_error_response("JOB_NOT_FOUND")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_response.dict()
+        )
+    except Exception as e:
+        logger.error(f"下載 SRT 字幕失敗: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "下載失敗", "error_code": "DOWNLOAD_FAILED", "details": str(e)}
         )
 
 

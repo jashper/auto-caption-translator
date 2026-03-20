@@ -157,3 +157,48 @@ class SubtitleGenerator:
         }
         
         return language_map.get(filename, "en")
+    
+    def generate_srt_content(self, segments: List[SubtitleSegment]) -> str:
+        """
+        生成 SRT 格式字幕內容
+        
+        Args:
+            segments: 字幕片段列表
+            
+        Returns:
+            SRT 格式字串
+        """
+        srt_lines = []
+        
+        for segment in segments:
+            # 索引
+            srt_lines.append(str(segment.index))
+            
+            # 時間戳（SRT 格式：HH:MM:SS,mmm）
+            start = self._format_srt_timestamp(segment.start_time)
+            end = self._format_srt_timestamp(segment.end_time)
+            srt_lines.append(f"{start} --> {end}")
+            
+            # 文字
+            srt_lines.append(segment.text)
+            
+            # 空行分隔
+            srt_lines.append("")
+        
+        return "\n".join(srt_lines)
+    
+    def _format_srt_timestamp(self, seconds: float) -> str:
+        """
+        格式化為 SRT 時間戳 (HH:MM:SS,mmm)
+        
+        Args:
+            seconds: 秒數
+            
+        Returns:
+            SRT 格式時間戳
+        """
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        millis = int((seconds % 1) * 1000)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"

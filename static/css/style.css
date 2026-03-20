@@ -222,6 +222,10 @@ h3 {
     cursor: not-allowed;
 }
 
+.btn:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
 .btn-small {
     padding: var(--spacing-xs) var(--spacing-md);
     font-size: var(--font-size-base);

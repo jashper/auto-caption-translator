@@ -105,14 +105,77 @@ function setupEventListeners() {
     
     // 鍵盤快捷鍵
     document.addEventListener('keydown', (e) => {
-        // 空格鍵：暫停/播放
-        if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && !e.target.isContentEditable) {
-            e.preventDefault();
-            if (videoPlayer && !videoPlayer.paused) {
-                videoPlayer.pause();
-            } else if (videoPlayer) {
-                videoPlayer.play();
-            }
+        // 如果在輸入框或可編輯元素中，不觸發快捷鍵
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+            return;
+        }
+        
+        switch(e.code) {
+            case 'Space':
+                // 空格鍵：播放/暫停
+                e.preventDefault();
+                if (videoPlayer) {
+                    if (videoPlayer.paused) {
+                        videoPlayer.play();
+                    } else {
+                        videoPlayer.pause();
+                    }
+                }
+                break;
+                
+            case 'ArrowLeft':
+                // 左箭頭：後退 5 秒
+                e.preventDefault();
+                if (videoPlayer) {
+                    videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 5);
+                }
+                break;
+                
+            case 'ArrowRight':
+                // 右箭頭：前進 5 秒
+                e.preventDefault();
+                if (videoPlayer) {
+                    videoPlayer.currentTime = Math.min(videoPlayer.duration, videoPlayer.currentTime + 5);
+                }
+                break;
+                
+            case 'ArrowUp':
+                // 上箭頭：音量增加
+                e.preventDefault();
+                if (videoPlayer) {
+                    videoPlayer.volume = Math.min(1, videoPlayer.volume + 0.1);
+                }
+                break;
+                
+            case 'ArrowDown':
+                // 下箭頭：音量減少
+                e.preventDefault();
+                if (videoPlayer) {
+                    videoPlayer.volume = Math.max(0, videoPlayer.volume - 0.1);
+                }
+                break;
+                
+            case 'KeyF':
+                // F 鍵：全屏切換
+                e.preventDefault();
+                toggleFullscreen();
+                break;
+                
+            case 'KeyT':
+                // T 鍵：切換追蹤模式
+                e.preventDefault();
+                const trackToggle = document.getElementById('track-playback-toggle');
+                if (trackToggle) {
+                    trackToggle.checked = !trackToggle.checked;
+                    trackPlaybackEnabled = trackToggle.checked;
+                }
+                break;
+                
+            case 'KeyS':
+                // S 鍵：切換字幕顯示/隱藏
+                e.preventDefault();
+                toggleSubtitleVisibility();
+                break;
         }
     });
     
@@ -996,5 +1059,33 @@ function syncPiPToMain() {
     const pipVideo = document.getElementById('pip-video');
     if (pipVideo && videoPlayer && pipActive) {
         videoPlayer.currentTime = pipVideo.currentTime;
+    }
+}
+
+// ===== 鍵盤快捷鍵輔助函數 =====
+
+// 切換全屏
+function toggleFullscreen() {
+    const videoContainer = document.getElementById('video-container');
+    if (!videoContainer) return;
+    
+    if (!document.fullscreenElement) {
+        videoContainer.requestFullscreen().catch(err => {
+            console.error('無法進入全屏模式:', err);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+// 切換字幕顯示/隱藏
+function toggleSubtitleVisibility() {
+    const overlay = document.getElementById('custom-subtitle-overlay');
+    if (!overlay) return;
+    
+    if (overlay.style.display === 'none') {
+        overlay.style.display = 'block';
+    } else {
+        overlay.style.display = 'none';
     }
 }

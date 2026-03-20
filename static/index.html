@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>影片字幕自動翻譯系統</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 影片字幕自動翻譯系統</h1>
+            <p class="subtitle">自動生成英文字幕並翻譯成您選擇的語言</p>
+        </header>
+
+        <!-- 上傳區 -->
+        <section id="upload-section" class="section">
+            <h2>上傳影片</h2>
+            <div class="upload-area" id="upload-area">
+                <input type="file" id="file-input" accept=".mp4,.avi,.mov,.mkv" hidden>
+                <div class="upload-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="upload-text">點擊或拖曳影片檔案到此處</p>
+                    <p class="upload-hint">支援 MP4, AVI, MOV, MKV 格式，最大 5GB，最長 2 小時</p>
+                </div>
+            </div>
+            
+            <div class="language-selection">
+                <h3>選擇翻譯語言</h3>
+                <p class="language-hint">請選擇需要翻譯的語言（至少選擇一種）</p>
+                <div class="language-checkboxes">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="target-language" value="zh-TW" checked>
+                        <span>繁體中文</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="target-language" value="zh-CN" checked>
+                        <span>簡體中文</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="target-language" value="ms" checked>
+                        <span>Bahasa Melayu (馬來文)</span>
+                    </label>
+                </div>
+            </div>
+            
+            <button id="upload-btn" class="btn btn-primary" disabled>開始上傳</button>
+        </section>
+
+        <!-- 進度區 -->
+        <section id="progress-section" class="section" style="display: none;">
+            <h2>處理進度</h2>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <p id="progress-text" class="progress-text">0% - 準備中...</p>
+                <p id="stage-text" class="stage-text"></p>
+            </div>
+        </section>
+
+        <!-- 結果區 -->
+        <section id="result-section" class="section" style="display: none;">
+            <h2>字幕檔案</h2>
+            <div id="download-area" class="download-area"></div>
+            
+            <h3>字幕預覽</h3>
+            <div class="preview-controls">
+                <select id="language-select" class="language-select">
+                    <option value="en">English</option>
+                    <option value="zh-TW">繁體中文</option>
+                    <option value="zh-CN">簡體中文</option>
+                    <option value="ms">Bahasa Melayu</option>
+                </select>
+            </div>
+            <div id="preview-area" class="preview-area"></div>
+        </section>
+
+        <!-- 錯誤訊息區 -->
+        <div id="error-message" class="error-message" style="display: none;"></div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

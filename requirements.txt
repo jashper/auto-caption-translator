@@ -1,0 +1,20 @@
+# 影片字幕自動翻譯系統 - 依賴套件
+
+# Web 框架
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# 音訊轉錄
+openai-whisper==20231117
+ffmpeg-python==0.2.0
+
+# 翻譯服務
+deep-translator==1.11.4
+
+# 資料處理
+pydantic==2.5.0
+python-dotenv==1.0.0
+
+# 日誌和工具
+python-json-logger==2.0.7

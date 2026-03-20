@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# 環境變數
+.env
+
+# 日誌
+logs/
+*.log
+
+# 儲存的文件（上傳的影片和生成的字幕）
+storage/uploads/
+storage/subtitles/
+storage/jobs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 作業系統
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 臨時文件
+*.tmp
+*.bak
+*.cache

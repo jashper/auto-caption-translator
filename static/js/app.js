@@ -8,6 +8,8 @@ let currentLanguage = 'en';
 let isEditing = false;
 let subtitleMode = 'single'; // 'single' or 'dual'
 let availableLanguages = {};
+let pipActive = false;
+let videoObserver = null;
 
 // DOM 元素
 const uploadArea = document.getElementById('upload-area');
@@ -126,6 +128,15 @@ function setupEventListeners() {
     if (secondarySubtitleSelect) {
         secondarySubtitleSelect.addEventListener('change', () => loadVideoSubtitle('dual'));
     }
+    
+    // 畫中畫控制
+    const pipCloseBtn = document.getElementById('pip-close-btn');
+    if (pipCloseBtn) {
+        pipCloseBtn.addEventListener('click', closePiP);
+    }
+    
+    // 設定滾動監聽（用於畫中畫）
+    setupPiPObserver();
 }
 
 // 處理字幕模式切換
@@ -760,4 +771,105 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ===== 畫中畫 (Picture-in-Picture) 功能 =====
+
+// 設定畫中畫觀察器
+function setupPiPObserver() {
+    // 使用 Intersection Observer 監測影片是否在視窗內
+    const options = {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.5 // 當影片有 50% 不在視窗內時觸發
+    };
+    
+    videoObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            // 如果影片不在視窗內且正在播放，啟動畫中畫
+            if (!entry.isIntersecting && videoPlayer && !videoPlayer.paused) {
+                activatePiP();
+            } else if (entry.isIntersecting && pipActive) {
+                // 如果影片回到視窗內，關閉畫中畫
+                closePiP();
+            }
+        });
+    }, options);
+    
+    // 開始觀察影片元素
+    if (videoPlayer) {
+        videoObserver.observe(videoPlayer);
+    }
+}
+
+// 啟動畫中畫
+function activatePiP() {
+    if (pipActive) return;
+    
+    const pipContainer = document.getElementById('pip-container');
+    const pipVideo = document.getElementById('pip-video');
+    
+    if (!pipContainer || !pipVideo || !videoPlayer) return;
+    
+    // 複製影片源和當前時間
+    pipVideo.src = videoPlayer.src;
+    pipVideo.currentTime = videoPlayer.currentTime;
+    
+    // 同步播放狀態
+    if (!videoPlayer.paused) {
+        pipVideo.play();
+    }
+    
+    // 暫停主影片
+    videoPlayer.pause();
+    
+    // 顯示畫中畫容器
+    pipContainer.classList.add('active');
+    pipActive = true;
+    
+    // 同步播放進度
+    pipVideo.addEventListener('timeupdate', syncPiPToMain);
+    pipVideo.addEventListener('pause', () => {
+        if (videoPlayer) videoPlayer.pause();
+    });
+    pipVideo.addEventListener('play', () => {
+        if (videoPlayer) videoPlayer.play();
+    });
+}
+
+// 關閉畫中畫
+function closePiP() {
+    if (!pipActive) return;
+    
+    const pipContainer = document.getElementById('pip-container');
+    const pipVideo = document.getElementById('pip-video');
+    
+    if (!pipContainer || !pipVideo || !videoPlayer) return;
+    
+    // 同步時間回主影片
+    videoPlayer.currentTime = pipVideo.currentTime;
+    
+    // 同步播放狀態
+    if (!pipVideo.paused) {
+        videoPlayer.play();
+    }
+    
+    // 停止畫中畫影片
+    pipVideo.pause();
+    pipVideo.src = '';
+    
+    // 隱藏畫中畫容器
+    pipContainer.classList.remove('active');
+    pipActive = false;
+    
+    // 移除事件監聽
+    pipVideo.removeEventListener('timeupdate', syncPiPToMain);
+}
+
+// 同步畫中畫到主影片
+function syncPiPToMain() {
+    const pipVideo = document.getElementById('pip-video');
+    if (pipVideo && videoPlayer && pipActive) {
+        videoPlayer.currentTime = pipVideo.currentTime;
+    }
 }

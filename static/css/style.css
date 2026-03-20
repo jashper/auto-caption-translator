@@ -453,6 +453,32 @@ h3 {
     background: var(--color-bg);
 }
 
+/* ===== 合併字幕區 ===== */
+.merge-subtitle-section {
+    padding: var(--spacing-lg);
+    background: var(--color-bg-light);
+    border-radius: 12px;
+    margin-bottom: var(--spacing-lg);
+}
+
+.merge-subtitle-section h3 {
+    margin-bottom: var(--spacing-sm);
+}
+
+.merge-subtitle-hint {
+    color: var(--color-text-light);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.merge-subtitle-section .language-checkboxes {
+    margin-bottom: var(--spacing-md);
+}
+
+.merge-subtitle-section .btn {
+    width: 100%;
+}
+
 .batch-download {
     display: flex;
     align-items: center;

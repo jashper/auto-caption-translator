@@ -202,3 +202,54 @@ class SubtitleGenerator:
         secs = int(seconds % 60)
         millis = int((seconds % 1) * 1000)
         return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+    
+    def merge_subtitles(self, subtitle_paths: List[str], languages: List[str]) -> str:
+        """
+        合併多個語言的字幕為單一 SRT 檔案（垂直排列）
+        
+        Args:
+            subtitle_paths: 字幕檔案路徑列表
+            languages: 語言代碼列表（對應順序）
+            
+        Returns:
+            合併後的 SRT 內容
+        """
+        try:
+            # 解析所有字幕檔案
+            all_segments = []
+            for path in subtitle_paths:
+                segments = self.parse_vtt(path)
+                all_segments.append(segments)
+            
+            # 確保所有字幕有相同數量的片段
+            min_length = min(len(segs) for segs in all_segments)
+            
+            # 合併字幕
+            merged_lines = []
+            for i in range(min_length):
+                # 索引
+                merged_lines.append(str(i + 1))
+                
+                # 使用第一個字幕的時間戳
+                segment = all_segments[0][i]
+                start = self._format_srt_timestamp(segment.start_time)
+                end = self._format_srt_timestamp(segment.end_time)
+                merged_lines.append(f"{start} --> {end}")
+                
+                # 合併所有語言的文字（垂直排列）
+                texts = []
+                for segs in all_segments:
+                    if i < len(segs):
+                        texts.append(segs[i].text)
+                
+                merged_lines.append("\n".join(texts))
+                
+                # 空行分隔
+                merged_lines.append("")
+            
+            logger.info(f"已合併 {len(languages)} 種語言的字幕，共 {min_length} 個片段")
+            return "\n".join(merged_lines)
+            
+        except Exception as e:
+            logger.error(f"合併字幕失敗: {e}")
+            raise

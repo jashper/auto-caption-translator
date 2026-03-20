@@ -66,6 +66,19 @@ function setupEventListeners() {
         batchDownloadBtn.addEventListener('click', batchDownload);
     }
     
+    // 合併字幕
+    const generateMergedBtn = document.getElementById('generate-merged-btn');
+    if (generateMergedBtn) {
+        generateMergedBtn.addEventListener('click', generateMergedSubtitle);
+    }
+    
+    // 監聽合併字幕複選框變化
+    document.addEventListener('change', (e) => {
+        if (e.target.name === 'merge-language') {
+            updateMergeButtonState();
+        }
+    });
+    
     // 影片播放器事件
     if (videoPlayer) {
         videoPlayer.addEventListener('timeupdate', syncSubtitles);
@@ -380,6 +393,22 @@ function showResults(subtitleFiles) {
         }
     }
     
+    // 生成合併字幕複選框
+    const mergeLanguageCheckboxes = document.getElementById('merge-language-checkboxes');
+    mergeLanguageCheckboxes.innerHTML = '';
+    if (subtitleFiles) {
+        for (const lang of Object.keys(subtitleFiles)) {
+            const name = languages[lang] || lang;
+            const label = document.createElement('label');
+            label.className = 'checkbox-label';
+            label.innerHTML = `
+                <input type="checkbox" name="merge-language" value="${lang}">
+                <span>${name}</span>
+            `;
+            mergeLanguageCheckboxes.appendChild(label);
+        }
+    }
+    
     // 載入第一個語言的字幕進行編輯
     if (Object.keys(subtitleFiles).length > 0) {
         currentLanguage = Object.keys(subtitleFiles)[0];
@@ -628,6 +657,73 @@ async function batchDownload() {
     
     // 直接下載
     window.location.href = url;
+}
+
+// 更新合併按鈕狀態
+function updateMergeButtonState() {
+    const checkboxes = document.querySelectorAll('input[name="merge-language"]:checked');
+    const generateMergedBtn = document.getElementById('generate-merged-btn');
+    
+    if (checkboxes.length >= 2 && checkboxes.length <= 3) {
+        generateMergedBtn.disabled = false;
+    } else {
+        generateMergedBtn.disabled = true;
+    }
+}
+
+// 生成合併字幕
+async function generateMergedSubtitle() {
+    if (!currentJobId) return;
+    
+    const checkboxes = document.querySelectorAll('input[name="merge-language"]:checked');
+    const selectedLanguages = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (selectedLanguages.length < 2 || selectedLanguages.length > 3) {
+        showError('選擇錯誤', '請選擇 2-3 種語言');
+        return;
+    }
+    
+    const generateMergedBtn = document.getElementById('generate-merged-btn');
+    generateMergedBtn.disabled = true;
+    generateMergedBtn.textContent = '生成中...';
+    
+    try {
+        const response = await fetch(`/merge-subtitles/${currentJobId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                languages: selectedLanguages,
+                format: 'srt'
+            })
+        });
+        
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || '生成失敗');
+        }
+        
+        // 下載合併字幕
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `merged_${selectedLanguages.join('_')}.srt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        showSuccess('生成成功', '合併字幕已下載');
+        
+    } catch (error) {
+        showError('生成失敗', error.message);
+    } finally {
+        generateMergedBtn.disabled = false;
+        generateMergedBtn.textContent = '生成合併字幕';
+        updateMergeButtonState();
+    }
 }
 
 // 顯示成功訊息

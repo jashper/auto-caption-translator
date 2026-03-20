@@ -853,6 +853,81 @@ async def download_all_subtitles(job_id: str, include_video: bool = False):
         )
 
 
+@app.post("/merge-subtitles/{job_id}")
+async def merge_subtitles(job_id: str, languages: List[str] = Body(..., embed=True), format: str = Body("srt", embed=True)):
+    """
+    合併多個語言的字幕為單一檔案
+    
+    Args:
+        job_id: 任務識別碼
+        languages: 要合併的語言列表（2-3 種）
+        format: 輸出格式（目前僅支援 srt）
+        
+    Returns:
+        合併後的字幕檔案
+    """
+    try:
+        # 檢查任務狀態
+        state = job_manager.get_job_status(job_id)
+        
+        if state.status.value != "completed":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": "任務尚未完成", "error_code": "JOB_NOT_COMPLETED"}
+            )
+        
+        # 驗證語言數量
+        if len(languages) < 2 or len(languages) > 3:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": "請選擇 2-3 種語言", "error_code": "INVALID_LANGUAGE_COUNT"}
+            )
+        
+        # 取得字幕檔案路徑
+        subtitle_paths = []
+        for lang in languages:
+            if lang not in state.subtitle_files:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail={"error": f"找不到語言 {lang} 的字幕", "error_code": "SUBTITLE_NOT_FOUND"}
+                )
+            subtitle_path = file_storage.get_subtitle_path(job_id, lang)
+            if not Path(subtitle_path).exists():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail={"error": f"字幕檔案不存在: {lang}", "error_code": "FILE_NOT_FOUND"}
+                )
+            subtitle_paths.append(subtitle_path)
+        
+        # 合併字幕
+        merged_content = subtitle_generator.merge_subtitles(subtitle_paths, languages)
+        
+        # 返回合併後的字幕
+        filename = f"{state.video_filename.rsplit('.', 1)[0]}_merged_{'_'.join(languages)}.srt"
+        
+        return StreamingResponse(
+            io.BytesIO(merged_content.encode('utf-8')),
+            media_type="text/plain",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+    except HTTPException:
+        raise
+    except FileNotFoundError:
+        error_response = get_error_response("JOB_NOT_FOUND")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_response.dict()
+        )
+    except Exception as e:
+        logger.error(f"合併字幕失敗: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "合併字幕失敗", "error_code": "MERGE_FAILED", "details": str(e)}
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host=HOST, port=PORT)

@@ -17,8 +17,6 @@ const resultSection = document.getElementById('result-section');
 const progressFill = document.getElementById('progress-fill');
 const progressText = document.getElementById('progress-text');
 const stageText = document.getElementById('stage-text');
-const downloadArea = document.getElementById('download-area');
-const errorMessage = document.getElementById('error-message');
 
 // 新增的 DOM 元素
 const videoPlayer = document.getElementById('video-player');
@@ -69,7 +67,29 @@ function setupEventListeners() {
     // 影片播放器事件
     if (videoPlayer) {
         videoPlayer.addEventListener('timeupdate', syncSubtitles);
+        
+        // 點擊影片暫停/播放
+        videoPlayer.addEventListener('click', () => {
+            if (videoPlayer.paused) {
+                videoPlayer.play();
+            } else {
+                videoPlayer.pause();
+            }
+        });
     }
+    
+    // 鍵盤快捷鍵
+    document.addEventListener('keydown', (e) => {
+        // 空格鍵：暫停/播放
+        if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && !e.target.isContentEditable) {
+            e.preventDefault();
+            if (videoPlayer && !videoPlayer.paused) {
+                videoPlayer.pause();
+            } else if (videoPlayer) {
+                videoPlayer.play();
+            }
+        }
+    });
 }
 
 // 處理檔案選擇
@@ -237,7 +257,7 @@ function showResults(subtitleFiles) {
     // 設定影片播放器
     videoPlayer.src = `/video/${currentJobId}`;
     
-    // 生成下載按鈕
+    // 語言名稱映射
     const languages = {
         'en': 'English',
         'zh-TW': '繁體中文',
@@ -245,44 +265,60 @@ function showResults(subtitleFiles) {
         'ms': 'Bahasa Melayu'
     };
     
-    downloadArea.innerHTML = '';
+    // 生成下載卡片
+    const downloadCards = document.getElementById('download-cards');
+    downloadCards.innerHTML = '';
     
-    // 只顯示實際生成的字幕檔案
     if (subtitleFiles) {
         for (const lang of Object.keys(subtitleFiles)) {
             const name = languages[lang] || lang;
             
-            // VTT 下載按鈕
-            const vttBtn = document.createElement('a');
-            vttBtn.href = `/download/${currentJobId}/${lang}`;
-            vttBtn.className = 'download-btn';
-            vttBtn.download = '';
-            vttBtn.innerHTML = `
-                <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                ${name} (VTT)
+            const card = document.createElement('div');
+            card.className = 'download-card';
+            card.innerHTML = `
+                <div class="download-card-title">${name}</div>
+                <div class="download-card-controls">
+                    <select class="format-select" data-lang="${lang}">
+                        <option value="vtt">VTT 格式</option>
+                        <option value="srt" selected>SRT 格式</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary download-card-btn" data-lang="${lang}">
+                    下載
+                </button>
             `;
-            downloadArea.appendChild(vttBtn);
             
-            // SRT 下載按鈕
-            const srtBtn = document.createElement('a');
-            srtBtn.href = `/download/${currentJobId}/${lang}/srt`;
-            srtBtn.className = 'download-btn';
-            srtBtn.download = '';
-            srtBtn.innerHTML = `
-                <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                ${name} (SRT)
-            `;
-            downloadArea.appendChild(srtBtn);
+            // 添加下載事件
+            const downloadBtn = card.querySelector('.download-card-btn');
+            downloadBtn.addEventListener('click', () => {
+                const formatSelect = card.querySelector('.format-select');
+                const format = formatSelect.value;
+                const url = format === 'srt' 
+                    ? `/download/${currentJobId}/${lang}/srt`
+                    : `/download/${currentJobId}/${lang}`;
+                window.location.href = url;
+            });
+            
+            downloadCards.appendChild(card);
         }
     }
+    
+    // 更新影片字幕選擇器
+    const videoSubtitleSelect = document.getElementById('video-subtitle-select');
+    videoSubtitleSelect.innerHTML = '<option value="">無字幕</option>';
+    
+    if (subtitleFiles) {
+        for (const lang of Object.keys(subtitleFiles)) {
+            const name = languages[lang] || lang;
+            const option = document.createElement('option');
+            option.value = lang;
+            option.textContent = name;
+            videoSubtitleSelect.appendChild(option);
+        }
+    }
+    
+    // 監聽字幕選擇變化
+    videoSubtitleSelect.addEventListener('change', loadVideoSubtitle);
     
     // 更新編輯器語言選擇器
     editLanguageSelect.innerHTML = '';
@@ -302,6 +338,37 @@ function showResults(subtitleFiles) {
         editLanguageSelect.value = currentLanguage;
         loadSubtitlesForEdit();
     }
+}
+
+// 載入影片字幕（VTT track）
+async function loadVideoSubtitle() {
+    const videoSubtitleSelect = document.getElementById('video-subtitle-select');
+    const selectedLang = videoSubtitleSelect.value;
+    const track = document.getElementById('video-track');
+    
+    if (!selectedLang) {
+        // 移除字幕
+        track.src = '';
+        track.srclang = '';
+        track.label = '';
+        return;
+    }
+    
+    // 設定字幕軌道
+    const languages = {
+        'en': 'English',
+        'zh-TW': '繁體中文',
+        'zh-CN': '簡體中文',
+        'ms': 'Bahasa Melayu'
+    };
+    
+    track.src = `/download/${currentJobId}/${selectedLang}`;
+    track.srclang = selectedLang;
+    track.label = languages[selectedLang] || selectedLang;
+    track.mode = 'showing';
+    
+    // 重新載入影片以應用字幕
+    videoPlayer.load();
 }
 
 // 載入字幕進行編輯
@@ -470,31 +537,31 @@ async function batchDownload() {
 
 // 顯示成功訊息
 function showSuccess(title, message) {
-    // 可以使用與 showError 類似的方式，或者使用不同的樣式
-    const successDiv = document.createElement('div');
-    successDiv.className = 'success-message';
-    successDiv.innerHTML = `<strong>${title}:</strong> ${message}`;
-    successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #d4edda; border: 2px solid #28a745; color: #155724; padding: 15px 20px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
-    
-    document.body.appendChild(successDiv);
-    
-    setTimeout(() => {
-        successDiv.remove();
-    }, 3000);
+    showNotification(`${title}: ${message}`, 'success');
 }
 
 // 顯示錯誤訊息
 function showError(title, message) {
-    errorMessage.innerHTML = `<strong>${title}:</strong> ${message}`;
-    errorMessage.style.display = 'block';
-    
-    // 3 秒後自動隱藏
-    setTimeout(hideError, 5000);
+    showNotification(`${title}: ${message}`, 'error');
 }
 
-// 隱藏錯誤訊息
+// 顯示通知
+function showNotification(message, type = 'info') {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+    notification.style.display = 'block';
+    
+    // 3 秒後自動隱藏
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 3000);
+}
+
+// 隱藏錯誤訊息（保留兼容性）
 function hideError() {
-    errorMessage.style.display = 'none';
+    const notification = document.getElementById('notification');
+    notification.style.display = 'none';
 }
 
 // HTML 轉義

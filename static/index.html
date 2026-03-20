@@ -3,35 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>影片字幕自動翻譯系統</title>
+    <title>影片字幕翻譯系統</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🎬 影片字幕自動翻譯系統</h1>
-            <p class="subtitle">自動生成英文字幕並翻譯成您選擇的語言</p>
-        </header>
-
         <!-- 上傳區 -->
         <section id="upload-section" class="section">
-            <h2>上傳影片</h2>
+            <header class="hero">
+                <h1>影片字幕翻譯</h1>
+                <p class="subtitle">自動生成多語言字幕，簡單快速</p>
+            </header>
+
             <div class="upload-area" id="upload-area">
                 <input type="file" id="file-input" accept=".mp4,.avi,.mov,.mkv" hidden>
                 <div class="upload-content">
-                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="17 8 12 3 7 8"></polyline>
                         <line x1="12" y1="3" x2="12" y2="15"></line>
                     </svg>
-                    <p class="upload-text">點擊或拖曳影片檔案到此處</p>
-                    <p class="upload-hint">支援 MP4, AVI, MOV, MKV 格式，最大 5GB，最長 2 小時</p>
+                    <p class="upload-text">點擊或拖曳影片到此處</p>
+                    <p class="upload-hint">支援 MP4, AVI, MOV, MKV · 最大 5GB · 最長 2 小時</p>
                 </div>
             </div>
             
             <div class="language-selection">
                 <h3>選擇翻譯語言</h3>
-                <p class="language-hint">請選擇需要翻譯的語言（至少選擇一種）</p>
                 <div class="language-checkboxes">
                     <label class="checkbox-label">
                         <input type="checkbox" name="target-language" value="zh-TW" checked>
@@ -43,79 +41,80 @@
                     </label>
                     <label class="checkbox-label">
                         <input type="checkbox" name="target-language" value="ms" checked>
-                        <span>Bahasa Melayu (馬來文)</span>
+                        <span>Bahasa Melayu</span>
                     </label>
                 </div>
             </div>
             
-            <button id="upload-btn" class="btn btn-primary" disabled>開始上傳</button>
+            <button id="upload-btn" class="btn btn-primary" disabled>開始處理</button>
         </section>
 
         <!-- 進度區 -->
         <section id="progress-section" class="section" style="display: none;">
-            <h2>處理進度</h2>
             <div class="progress-container">
+                <h2>處理中</h2>
                 <div class="progress-bar">
                     <div id="progress-fill" class="progress-fill"></div>
                 </div>
-                <p id="progress-text" class="progress-text">0% - 準備中...</p>
-                <p id="stage-text" class="stage-text"></p>
+                <p id="progress-text" class="progress-text">0%</p>
+                <p id="stage-text" class="stage-text">準備中...</p>
             </div>
         </section>
 
         <!-- 結果區 -->
         <section id="result-section" class="section" style="display: none;">
-            <h2>處理完成</h2>
+            <h2>完成</h2>
             
             <!-- 影片播放器 -->
-            <div class="video-player-container">
+            <div class="video-container">
                 <video id="video-player" controls>
+                    <track id="video-track" kind="subtitles" srclang="en" label="English">
                     您的瀏覽器不支援影片播放。
                 </video>
+                <div class="video-controls">
+                    <button id="toggle-subtitle-mode" class="btn-icon" title="切換字幕顯示模式">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="10" rx="2"></rect>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                        </svg>
+                    </button>
+                    <select id="video-subtitle-select" class="subtitle-select">
+                        <option value="">無字幕</option>
+                    </select>
+                </div>
             </div>
             
-            <!-- 下載按鈕區 -->
-            <div class="download-controls">
+            <!-- 下載區 -->
+            <div class="download-section">
                 <h3>下載字幕</h3>
-                <div id="download-area" class="download-area"></div>
+                <div id="download-cards" class="download-cards"></div>
                 <div class="batch-download">
                     <button id="batch-download-btn" class="btn btn-secondary">
-                        <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
                         批量下載所有字幕
                     </button>
-                    <label class="checkbox-label" style="margin-left: 15px;">
+                    <label class="checkbox-label">
                         <input type="checkbox" id="include-video-checkbox">
-                        <span>包含影片檔案</span>
+                        <span>包含影片</span>
                     </label>
                 </div>
             </div>
             
-            <!-- 字幕編輯器 -->
-            <div class="subtitle-editor">
+            <!-- 編輯器 -->
+            <div class="editor-section">
                 <div class="editor-header">
-                    <h3>字幕編輯器</h3>
+                    <h3>編輯字幕</h3>
                     <div class="editor-controls">
-                        <select id="edit-language-select" class="language-select">
-                        </select>
-                        <button id="save-subtitles-btn" class="btn btn-primary btn-small">儲存修改</button>
+                        <select id="edit-language-select" class="language-select"></select>
+                        <button id="save-subtitles-btn" class="btn btn-primary btn-small">儲存</button>
                         <button id="reset-subtitles-btn" class="btn btn-secondary btn-small">重置</button>
                     </div>
                 </div>
-                
-                <div class="editor-hint">
-                    💡 提示：點擊字幕可以編輯內容，點擊時間可以跳轉影片。播放時會自動高亮當前字幕。
-                </div>
-                
                 <div id="subtitle-editor-area" class="subtitle-editor-area"></div>
             </div>
         </section>
 
-        <!-- 錯誤訊息區 -->
-        <div id="error-message" class="error-message" style="display: none;"></div>
+        <!-- 通知訊息 -->
+        <div id="notification" class="notification" style="display: none;"></div>
     </div>
 
     <script src="/static/js/app.js"></script>

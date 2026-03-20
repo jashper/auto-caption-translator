@@ -8,13 +8,24 @@ Automatic video subtitle generation and translation system using Whisper and Goo
 2. Open http://localhost:8000 in your browser
 3. Upload a video file
 4. Select target languages for translation
-5. Download subtitles in your chosen languages
+5. Wait for processing to complete
+6. **Watch video with synchronized subtitles**
+7. **Edit subtitles if needed**
+8. Download subtitles in your chosen languages (VTT or SRT format)
+9. **Or batch download all subtitles at once**
 
 ## Features
 
 - Automatic speech recognition using OpenAI Whisper
 - Selective translation to Traditional Chinese, Simplified Chinese, and Malay
 - Choose only the languages you need to save processing time
+- **Video player with subtitle preview**
+- **Edit subtitles directly in the browser**
+- **Real-time subtitle synchronization with video playback**
+- **Click subtitle to jump to video timestamp**
+- **Batch download all subtitles as ZIP**
+- **Support both VTT and SRT formats**
+- **Save edited subtitles to server**
 - Web-based interface
 - Local processing (no cloud upload)
 - Support for videos up to 2 hours

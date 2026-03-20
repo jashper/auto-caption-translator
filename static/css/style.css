@@ -365,6 +365,16 @@ h3 {
 
 .download-card .btn {
     width: 100%;
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    background: var(--color-bg);
+    color: var(--color-text);
+    border: 2px solid var(--color-border);
+}
+
+.download-card .btn:hover:not(:disabled) {
+    border-color: var(--color-text);
+    background: var(--color-bg);
 }
 
 .batch-download {

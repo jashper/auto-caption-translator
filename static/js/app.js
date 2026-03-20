@@ -16,6 +16,9 @@ let primarySubtitleData = [];
 let secondarySubtitleData = [];
 let subtitleUpdateInterval = null;
 
+// 追蹤模式
+let trackPlaybackEnabled = true;
+
 // DOM 元素
 const uploadArea = document.getElementById('upload-area');
 const fileInput = document.getElementById('file-input');
@@ -142,6 +145,14 @@ function setupEventListeners() {
     
     // 設定滾動監聽（用於畫中畫）
     setupPiPObserver();
+    
+    // 追蹤模式切換
+    const trackPlaybackToggle = document.getElementById('track-playback-toggle');
+    if (trackPlaybackToggle) {
+        trackPlaybackToggle.addEventListener('change', (e) => {
+            trackPlaybackEnabled = e.target.checked;
+        });
+    }
 }
 
 // 處理字幕模式切換
@@ -651,25 +662,40 @@ function syncSubtitles() {
     
     // 找到當前時間對應的字幕
     const items = subtitleEditorArea.querySelectorAll('.subtitle-edit-item');
+    let activeItem = null;
+    
     items.forEach(item => {
         const startTime = parseFloat(item.dataset.startTime.split(':').reduce((acc, time) => (60 * acc) + +time));
         const endTime = parseFloat(item.dataset.endTime.split(':').reduce((acc, time) => (60 * acc) + +time));
         
         if (currentTime >= startTime && currentTime <= endTime) {
             item.classList.add('active');
-            // 自動滾動到當前字幕
-            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            activeItem = item;
         } else {
             item.classList.remove('active');
         }
     });
+    
+    // 只有在追蹤模式開啟時才自動滾動
+    if (trackPlaybackEnabled && activeItem) {
+        activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 }
 
-// 跳轉到指定時間
+// 跳轉到指定時間（不觸發滾動）
 function seekToTime(seconds) {
     if (videoPlayer) {
+        // 暫時禁用追蹤模式避免跳轉時滾動
+        const wasTracking = trackPlaybackEnabled;
+        trackPlaybackEnabled = false;
+        
         videoPlayer.currentTime = seconds;
         videoPlayer.play();
+        
+        // 100ms 後恢復追蹤模式設置
+        setTimeout(() => {
+            trackPlaybackEnabled = wasTracking;
+        }, 100);
     }
 }
 

@@ -6,6 +6,8 @@ let currentSubtitles = [];
 let originalSubtitles = [];
 let currentLanguage = 'en';
 let isEditing = false;
+let subtitleMode = 'single'; // 'single' or 'dual'
+let availableLanguages = {};
 
 // DOM 元素
 const uploadArea = document.getElementById('upload-area');
@@ -90,6 +92,45 @@ function setupEventListeners() {
             }
         }
     });
+    
+    // 字幕模式切換
+    const subtitleModeRadios = document.querySelectorAll('input[name="subtitle-mode"]');
+    subtitleModeRadios.forEach(radio => {
+        radio.addEventListener('change', handleSubtitleModeChange);
+    });
+    
+    // 字幕選擇器
+    const primarySubtitleSelect = document.getElementById('primary-subtitle-select');
+    const primarySubtitleSelectDual = document.getElementById('primary-subtitle-select-dual');
+    const secondarySubtitleSelect = document.getElementById('secondary-subtitle-select');
+    
+    if (primarySubtitleSelect) {
+        primarySubtitleSelect.addEventListener('change', () => loadVideoSubtitle('single'));
+    }
+    if (primarySubtitleSelectDual) {
+        primarySubtitleSelectDual.addEventListener('change', () => loadVideoSubtitle('dual'));
+    }
+    if (secondarySubtitleSelect) {
+        secondarySubtitleSelect.addEventListener('change', () => loadVideoSubtitle('dual'));
+    }
+}
+
+// 處理字幕模式切換
+function handleSubtitleModeChange(e) {
+    subtitleMode = e.target.value;
+    
+    const singleControls = document.getElementById('single-language-controls');
+    const dualControls = document.getElementById('dual-language-controls');
+    
+    if (subtitleMode === 'single') {
+        singleControls.style.display = 'block';
+        dualControls.style.display = 'none';
+        loadVideoSubtitle('single');
+    } else {
+        singleControls.style.display = 'none';
+        dualControls.style.display = 'block';
+        loadVideoSubtitle('dual');
+    }
 }
 
 // 處理檔案選擇
@@ -265,6 +306,9 @@ function showResults(subtitleFiles) {
         'ms': 'Bahasa Melayu'
     };
     
+    // 儲存可用語言
+    availableLanguages = languages;
+    
     // 生成下載卡片
     const downloadCards = document.getElementById('download-cards');
     downloadCards.innerHTML = '';
@@ -283,7 +327,7 @@ function showResults(subtitleFiles) {
                         <option value="srt" selected>SRT 格式</option>
                     </select>
                 </div>
-                <button class="btn btn-primary download-card-btn" data-lang="${lang}">
+                <button class="btn download-card-btn" data-lang="${lang}">
                     下載
                 </button>
             `;
@@ -303,22 +347,26 @@ function showResults(subtitleFiles) {
         }
     }
     
-    // 更新影片字幕選擇器
-    const videoSubtitleSelect = document.getElementById('video-subtitle-select');
-    videoSubtitleSelect.innerHTML = '<option value="">無字幕</option>';
+    // 更新所有字幕選擇器
+    const primarySubtitleSelect = document.getElementById('primary-subtitle-select');
+    const primarySubtitleSelectDual = document.getElementById('primary-subtitle-select-dual');
+    const secondarySubtitleSelect = document.getElementById('secondary-subtitle-select');
     
-    if (subtitleFiles) {
-        for (const lang of Object.keys(subtitleFiles)) {
-            const name = languages[lang] || lang;
-            const option = document.createElement('option');
-            option.value = lang;
-            option.textContent = name;
-            videoSubtitleSelect.appendChild(option);
+    // 清空並重新填充
+    [primarySubtitleSelect, primarySubtitleSelectDual, secondarySubtitleSelect].forEach(select => {
+        if (select) {
+            select.innerHTML = '<option value="">無字幕</option>';
+            if (subtitleFiles) {
+                for (const lang of Object.keys(subtitleFiles)) {
+                    const name = languages[lang] || lang;
+                    const option = document.createElement('option');
+                    option.value = lang;
+                    option.textContent = name;
+                    select.appendChild(option);
+                }
+            }
         }
-    }
-    
-    // 監聽字幕選擇變化
-    videoSubtitleSelect.addEventListener('change', loadVideoSubtitle);
+    });
     
     // 更新編輯器語言選擇器
     editLanguageSelect.innerHTML = '';
@@ -341,31 +389,78 @@ function showResults(subtitleFiles) {
 }
 
 // 載入影片字幕（VTT track）
-async function loadVideoSubtitle() {
-    const videoSubtitleSelect = document.getElementById('video-subtitle-select');
-    const selectedLang = videoSubtitleSelect.value;
-    const track = document.getElementById('video-track');
+async function loadVideoSubtitle(mode) {
+    const trackPrimary = document.getElementById('video-track-primary');
+    const trackSecondary = document.getElementById('video-track-secondary');
     
-    if (!selectedLang) {
-        // 移除字幕
-        track.src = '';
-        track.srclang = '';
-        track.label = '';
-        return;
+    if (mode === 'single') {
+        const primarySubtitleSelect = document.getElementById('primary-subtitle-select');
+        const selectedLang = primarySubtitleSelect.value;
+        
+        // 清除副字幕
+        trackSecondary.src = '';
+        trackSecondary.mode = 'disabled';
+        
+        if (!selectedLang) {
+            // 移除主字幕
+            trackPrimary.src = '';
+            trackPrimary.mode = 'disabled';
+            videoPlayer.classList.remove('dual-subtitle');
+            return;
+        }
+        
+        // 設定主字幕
+        const languages = {
+            'en': 'English',
+            'zh-TW': '繁體中文',
+            'zh-CN': '簡體中文',
+            'ms': 'Bahasa Melayu'
+        };
+        
+        trackPrimary.src = `/download/${currentJobId}/${selectedLang}`;
+        trackPrimary.srclang = selectedLang;
+        trackPrimary.label = languages[selectedLang] || selectedLang;
+        trackPrimary.mode = 'showing';
+        videoPlayer.classList.remove('dual-subtitle');
+        
+    } else if (mode === 'dual') {
+        const primarySubtitleSelectDual = document.getElementById('primary-subtitle-select-dual');
+        const secondarySubtitleSelect = document.getElementById('secondary-subtitle-select');
+        
+        const primaryLang = primarySubtitleSelectDual.value;
+        const secondaryLang = secondarySubtitleSelect.value;
+        
+        const languages = {
+            'en': 'English',
+            'zh-TW': '繁體中文',
+            'zh-CN': '簡體中文',
+            'ms': 'Bahasa Melayu'
+        };
+        
+        // 設定主字幕
+        if (primaryLang) {
+            trackPrimary.src = `/download/${currentJobId}/${primaryLang}`;
+            trackPrimary.srclang = primaryLang;
+            trackPrimary.label = languages[primaryLang] || primaryLang;
+            trackPrimary.mode = 'showing';
+        } else {
+            trackPrimary.src = '';
+            trackPrimary.mode = 'disabled';
+        }
+        
+        // 設定副字幕
+        if (secondaryLang) {
+            trackSecondary.src = `/download/${currentJobId}/${secondaryLang}`;
+            trackSecondary.srclang = secondaryLang;
+            trackSecondary.label = languages[secondaryLang] || secondaryLang;
+            trackSecondary.mode = 'showing';
+            videoPlayer.classList.add('dual-subtitle');
+        } else {
+            trackSecondary.src = '';
+            trackSecondary.mode = 'disabled';
+            videoPlayer.classList.remove('dual-subtitle');
+        }
     }
-    
-    // 設定字幕軌道
-    const languages = {
-        'en': 'English',
-        'zh-TW': '繁體中文',
-        'zh-CN': '簡體中文',
-        'ms': 'Bahasa Melayu'
-    };
-    
-    track.src = `/download/${currentJobId}/${selectedLang}`;
-    track.srclang = selectedLang;
-    track.label = languages[selectedLang] || selectedLang;
-    track.mode = 'showing';
     
     // 重新載入影片以應用字幕
     videoPlayer.load();

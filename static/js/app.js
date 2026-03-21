@@ -1122,8 +1122,8 @@ function setupPiPObserver() {
         const rect = videoContainer.getBoundingClientRect();
         const distanceFromTop = rect.top;
         
-        // 如果畫中畫已啟動，檢查是否需要關閉
-        if (pipActive && distanceFromTop > -50) {
+        // 如果畫中畫已啟動，檢查是否需要關閉（當影片回到視窗內時）
+        if (pipActive && distanceFromTop > -100) {
             closePiP();
             return;
         }
@@ -1131,7 +1131,7 @@ function setupPiPObserver() {
         // 如果畫中畫未啟動，檢查是否需要顯示提示或啟動
         if (!pipActive) {
             // 當影片頂部超過視窗頂部 50px 時，顯示提示
-            if (distanceFromTop < -50 && distanceFromTop > -100) {
+            if (distanceFromTop < -50 && distanceFromTop > -300) {
                 pipHint.classList.add('show');
                 
                 // 清除之前的超時
@@ -1147,8 +1147,8 @@ function setupPiPObserver() {
                 pipHint.classList.remove('show');
             }
             
-            // 當影片頂部超過視窗頂部 100px 且正在播放時，啟動畫中畫
-            if (distanceFromTop < -100 && !videoPlayer.paused) {
+            // 當影片頂部超過視窗頂部 300px 且正在播放時，啟動畫中畫
+            if (distanceFromTop < -300 && !videoPlayer.paused) {
                 activatePiP();
             }
         }

@@ -312,7 +312,7 @@ h3 {
     transform: translateX(-50%);
     text-align: center;
     pointer-events: none;
-    z-index: 10;
+    z-index: 2147483647;
     max-width: 90%;
 }
 
@@ -1030,27 +1030,19 @@ h3 {
 /* ===== 參考語言顯示 ===== */
 .subtitle-reference {
     background: #f5f5f5;
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px 6px 0 0;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 0.4rem 0.75rem;
+    margin-top: 0.5rem;
+    border-radius: 6px;
     font-size: 0.85rem;
     color: #666;
     line-height: 1.4;
     user-select: none;
     cursor: default;
+    border-left: 3px solid #ddd;
 }
 
-.subtitle-reference-label {
-    font-size: 0.75rem;
-    color: #999;
-    font-weight: 500;
-    margin-bottom: 0.25rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.subtitle-edit-item.with-reference .subtitle-text-edit {
-    border-radius: 0 0 6px 6px;
+.subtitle-edit-item.with-reference {
+    padding-bottom: 0.5rem;
 }
 
 /* 合併下載說明 */
@@ -1063,4 +1055,11 @@ h3 {
     background: #f8f9fa;
     border-radius: 6px;
     border-left: 3px solid var(--color-primary);
+}
+
+/* 添加語言按鈕激活狀態 */
+#add-language-btn.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
 }

@@ -5,9 +5,8 @@ let pollInterval = null;
 let currentSubtitles = [];
 let originalSubtitles = [];
 let currentLanguage = 'en';
-let referenceLanguage = 'en';
-let showReference = false;
-let referenceSubtitles = [];
+let secondLanguage = null;
+let secondLanguageSubtitles = [];
 let isEditing = false;
 let subtitleMode = 'single'; // 'single' or 'dual'
 let availableLanguages = {};
@@ -79,31 +78,10 @@ function setupEventListeners() {
         batchDownloadBtn.addEventListener('click', batchDownload);
     }
     
-    // 參考語言控制
-    const showReferenceToggle = document.getElementById('show-reference-toggle');
-    const referenceLanguageSelect = document.getElementById('reference-language-select');
-    
-    if (showReferenceToggle) {
-        showReferenceToggle.addEventListener('change', (e) => {
-            showReference = e.target.checked;
-            if (referenceLanguageSelect) {
-                referenceLanguageSelect.style.display = showReference ? 'inline-block' : 'none';
-            }
-            if (showReference && referenceLanguage) {
-                loadReferenceSubtitles();
-            } else {
-                renderSubtitleEditor();
-            }
-        });
-    }
-    
-    if (referenceLanguageSelect) {
-        referenceLanguageSelect.addEventListener('change', (e) => {
-            referenceLanguage = e.target.value;
-            if (showReference) {
-                loadReferenceSubtitles();
-            }
-        });
+    // 添加語言按鈕
+    const addLanguageBtn = document.getElementById('add-language-btn');
+    if (addLanguageBtn) {
+        addLanguageBtn.addEventListener('click', toggleSecondLanguage);
     }
     
     // 合併字幕
@@ -514,10 +492,6 @@ function showResults(subtitleFiles) {
     
     // 更新編輯器語言選擇器
     editLanguageSelect.innerHTML = '';
-    const referenceLanguageSelect = document.getElementById('reference-language-select');
-    if (referenceLanguageSelect) {
-        referenceLanguageSelect.innerHTML = '';
-    }
     
     if (subtitleFiles) {
         for (const lang of Object.keys(subtitleFiles)) {
@@ -528,20 +502,6 @@ function showResults(subtitleFiles) {
             option.value = lang;
             option.textContent = name;
             editLanguageSelect.appendChild(option);
-            
-            // 參考語言選擇器
-            if (referenceLanguageSelect) {
-                const refOption = document.createElement('option');
-                refOption.value = lang;
-                refOption.textContent = name;
-                referenceLanguageSelect.appendChild(refOption);
-            }
-        }
-        
-        // 默認參考語言為英文（如果有的話）
-        if (subtitleFiles['en'] && referenceLanguageSelect) {
-            referenceLanguageSelect.value = 'en';
-            referenceLanguage = 'en';
         }
     }
     
@@ -737,40 +697,10 @@ async function loadSubtitlesForEdit() {
         currentSubtitles = data.subtitles;
         originalSubtitles = JSON.parse(JSON.stringify(data.subtitles));
         
-        // 如果顯示參考語言，載入參考字幕
-        if (showReference && referenceLanguage) {
-            await loadReferenceSubtitles();
-        } else {
-            renderSubtitleEditor();
-        }
+        renderSubtitleEditor();
         
     } catch (error) {
         showError('載入字幕失敗', error.message);
-    }
-}
-
-// 載入參考字幕
-async function loadReferenceSubtitles() {
-    if (!currentJobId || !referenceLanguage) {
-        renderSubtitleEditor();
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/preview/${currentJobId}/${referenceLanguage}`);
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.error || '載入參考字幕失敗');
-        }
-        
-        referenceSubtitles = data.subtitles;
-        renderSubtitleEditor();
-        
-    } catch (error) {
-        console.error('載入參考字幕失敗:', error);
-        referenceSubtitles = [];
-        renderSubtitleEditor();
     }
 }
 
@@ -786,14 +716,13 @@ function renderSubtitleEditor() {
         item.dataset.startTime = subtitle.start_time;
         item.dataset.endTime = subtitle.end_time;
         
-        // 如果顯示參考語言
+        // 如果有第二語言，顯示參考語言（只讀）
         let referenceHtml = '';
-        if (showReference && referenceSubtitles[idx]) {
-            const refText = referenceSubtitles[idx].text;
-            const refLangName = getLanguageName(referenceLanguage);
+        if (secondLanguage && secondLanguageSubtitles[idx]) {
+            const refText = secondLanguageSubtitles[idx].text;
+            const refLangName = getLanguageName(secondLanguage);
             referenceHtml = `
                 <div class="subtitle-reference">
-                    <div class="subtitle-reference-label">參考 (${refLangName})</div>
                     ${escapeHtml(refText)}
                 </div>
             `;
@@ -804,10 +733,10 @@ function renderSubtitleEditor() {
             <div class="subtitle-time-edit" onclick="seekToTime(${parseTimeToSeconds(subtitle.start_time)})">
                 ${subtitle.start_time} --> ${subtitle.end_time}
             </div>
-            ${referenceHtml}
             <div class="subtitle-text-edit" contenteditable="true" data-idx="${idx}">
                 ${escapeHtml(subtitle.text)}
             </div>
+            ${referenceHtml}
         `;
         
         // 監聽編輯事件
@@ -1219,4 +1148,83 @@ function toggleSubtitleVisibility() {
     } else {
         overlay.style.display = 'none';
     }
+}
+
+// 切換第二語言顯示
+function toggleSecondLanguage() {
+    if (!currentJobId) return;
+    
+    // 如果已經有第二語言，則移除
+    if (secondLanguage) {
+        secondLanguage = null;
+        secondLanguageSubtitles = [];
+        renderSubtitleEditor();
+        
+        // 更新按鈕文字
+        const addLanguageBtn = document.getElementById('add-language-btn');
+        if (addLanguageBtn) {
+            addLanguageBtn.textContent = '+ 語言';
+            addLanguageBtn.classList.remove('active');
+        }
+        return;
+    }
+    
+    // 顯示語言選擇對話框
+    const availableLangs = Object.keys(availableLanguages).filter(lang => lang !== currentLanguage);
+    
+    if (availableLangs.length === 0) {
+        showError('無可用語言', '沒有其他語言可供選擇');
+        return;
+    }
+    
+    // 創建簡單的選擇對話框
+    const langNames = availableLangs.map(lang => availableLanguages[lang]);
+    const selection = prompt(`選擇參考語言：\n${availableLangs.map((lang, i) => `${i + 1}. ${availableLanguages[lang]}`).join('\n')}\n\n請輸入數字 (1-${availableLangs.length}):`);
+    
+    if (!selection) return;
+    
+    const index = parseInt(selection) - 1;
+    if (index >= 0 && index < availableLangs.length) {
+        secondLanguage = availableLangs[index];
+        loadSecondLanguageSubtitles();
+        
+        // 更新按鈕狀態
+        const addLanguageBtn = document.getElementById('add-language-btn');
+        if (addLanguageBtn) {
+            addLanguageBtn.textContent = `✓ ${availableLanguages[secondLanguage]}`;
+            addLanguageBtn.classList.add('active');
+        }
+    } else {
+        showError('選擇錯誤', '請輸入有效的數字');
+    }
+}
+
+// 載入第二語言字幕
+async function loadSecondLanguageSubtitles() {
+    if (!currentJobId || !secondLanguage) {
+        renderSubtitleEditor();
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/preview/${currentJobId}/${secondLanguage}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || '載入參考字幕失敗');
+        }
+        
+        secondLanguageSubtitles = data.subtitles;
+        renderSubtitleEditor();
+        
+    } catch (error) {
+        console.error('載入參考字幕失敗:', error);
+        secondLanguageSubtitles = [];
+        renderSubtitleEditor();
+    }
+}
+
+// 獲取語言名稱
+function getLanguageName(langCode) {
+    return availableLanguages[langCode] || langCode;
 }

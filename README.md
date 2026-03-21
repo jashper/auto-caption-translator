@@ -9,6 +9,31 @@ Automatic video subtitle generation and translation system using WhisperX and Go
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and updates
 - **[DESIGN.md](DESIGN.md)** - Technical design and architecture
 
+## 🏷️ Version History
+
+This project uses git tags to mark releases. To view different versions:
+
+```bash
+# List all versions
+git tag -l
+
+# View changes in a specific version
+git show v2.1.0
+
+# Switch to a specific version
+git checkout v2.1.0
+
+# Return to latest version
+git checkout master
+```
+
+**Available versions:**
+- `v1.0.0` - Initial release with basic subtitle generation
+- `v2.0.0` - Added video player, subtitle editor, and batch download
+- `v2.1.0` - WhisperX upgrade with improved subtitle quality (current)
+
+For detailed changes in each version, see [CHANGELOG.md](CHANGELOG.md).
+
 ## Quick Start
 
 1. Run `START.bat` to start the server

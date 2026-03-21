@@ -221,6 +221,12 @@ function setupEventListeners() {
     // 設定滾動監聽（用於畫中畫）
     setupPiPObserver();
     
+    // 監聽全屏狀態變化
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
     // 追蹤模式切換按鈕
     const trackPlaybackBtn = document.getElementById('track-playback-btn');
     if (trackPlaybackBtn) {
@@ -428,8 +434,13 @@ function showResults(subtitleFiles) {
         'ms': 'Bahasa Melayu'
     };
     
-    // 儲存可用語言
-    availableLanguages = languages;
+    // 儲存實際可用的語言（只包含用戶選擇的語言）
+    availableLanguages = {};
+    if (subtitleFiles) {
+        for (const lang of Object.keys(subtitleFiles)) {
+            availableLanguages[lang] = languages[lang] || lang;
+        }
+    }
     
     // 生成下載卡片
     const downloadCards = document.getElementById('download-cards');
@@ -499,7 +510,7 @@ function showResults(subtitleFiles) {
     
     if (subtitleFiles) {
         for (const lang of Object.keys(subtitleFiles)) {
-            const name = languages[lang] || lang;
+            const name = availableLanguages[lang] || lang;
             
             // 編輯語言選擇器
             const option = document.createElement('option');
@@ -507,7 +518,7 @@ function showResults(subtitleFiles) {
             option.textContent = name;
             editLanguageSelect.appendChild(option);
             
-            // 參考語言選擇器
+            // 參考語言選擇器（只添加實際可用的語言）
             if (referenceLanguageSelect) {
                 const refOption = document.createElement('option');
                 refOption.value = lang;
@@ -516,6 +527,17 @@ function showResults(subtitleFiles) {
             }
         }
     }
+    
+    // 確保字幕模式默認為 single
+    subtitleMode = 'single';
+    const singleModeRadio = document.querySelector('input[name="subtitle-mode"][value="single"]');
+    if (singleModeRadio) {
+        singleModeRadio.checked = true;
+    }
+    const singleControls = document.getElementById('single-language-controls');
+    const dualControls = document.getElementById('dual-language-controls');
+    if (singleControls) singleControls.style.display = 'block';
+    if (dualControls) dualControls.style.display = 'none';
     
     // 生成合併字幕複選框（卡片式）
     const mergeLanguageCards = document.getElementById('merge-language-cards');
@@ -1239,6 +1261,39 @@ function toggleFullscreenContainer() {
         } else if (document.msExitFullscreen) {
             document.msExitFullscreen();
         }
+    }
+}
+
+// 處理全屏狀態變化
+function handleFullscreenChange() {
+    const overlay = document.getElementById('custom-subtitle-overlay');
+    const videoContainer = document.getElementById('video-container');
+    
+    if (!overlay || !videoContainer) return;
+    
+    const isFullscreen = document.fullscreenElement === videoContainer ||
+                        document.webkitFullscreenElement === videoContainer ||
+                        document.mozFullScreenElement === videoContainer ||
+                        document.msFullscreenElement === videoContainer;
+    
+    if (isFullscreen) {
+        // 進入全屏時，強制顯示字幕層
+        overlay.style.display = 'block';
+        overlay.style.visibility = 'visible';
+        overlay.style.opacity = '1';
+        
+        // 確保字幕層在最上層
+        overlay.style.zIndex = '2147483647';
+        overlay.style.position = 'absolute';
+        
+        console.log('全屏模式：字幕層已啟用');
+    } else {
+        // 退出全屏時，恢復正常狀態
+        overlay.style.display = '';
+        overlay.style.visibility = '';
+        overlay.style.opacity = '';
+        
+        console.log('退出全屏模式');
     }
 }
 

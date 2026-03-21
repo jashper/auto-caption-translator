@@ -989,17 +989,23 @@ h3 {
     object-fit: contain;
 }
 
-/* 全屏模式下的字幕疊加層保持可見 */
+/* 全屏模式下的字幕疊加層 - 強制顯示 */
 .video-container:fullscreen .custom-subtitle-overlay,
 .video-container:-webkit-full-screen .custom-subtitle-overlay,
 .video-container:-moz-full-screen .custom-subtitle-overlay,
 .video-container:-ms-fullscreen .custom-subtitle-overlay {
-    position: absolute;
-    bottom: 100px;
-    left: 0;
-    right: 0;
-    z-index: 2147483647;
-    pointer-events: none;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: absolute !important;
+    bottom: 100px !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 2147483647 !important;
+    pointer-events: none !important;
+    transform: translateX(0) !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 /* 全屏模式下字幕文字樣式增強 */
@@ -1007,16 +1013,31 @@ h3 {
 .video-container:-webkit-full-screen .primary-subtitle-text,
 .video-container:-moz-full-screen .primary-subtitle-text,
 .video-container:-ms-fullscreen .primary-subtitle-text {
-    font-size: 2.5rem;
-    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9);
+    font-size: 2.5rem !important;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9) !important;
+    display: inline-block !important;
 }
 
 .video-container:fullscreen .secondary-subtitle-text,
 .video-container:-webkit-full-screen .secondary-subtitle-text,
 .video-container:-moz-full-screen .secondary-subtitle-text,
 .video-container:-ms-fullscreen .secondary-subtitle-text {
-    font-size: 1.8rem;
-    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9);
+    font-size: 1.8rem !important;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9) !important;
+    display: inline-block !important;
+}
+
+/* 全屏模式下確保字幕文字可見 */
+.video-container:fullscreen .primary-subtitle-text.show,
+.video-container:-webkit-full-screen .primary-subtitle-text.show,
+.video-container:-moz-full-screen .primary-subtitle-text.show,
+.video-container:-ms-fullscreen .primary-subtitle-text.show,
+.video-container:fullscreen .secondary-subtitle-text.show,
+.video-container:-webkit-full-screen .secondary-subtitle-text.show,
+.video-container:-moz-full-screen .secondary-subtitle-text.show,
+.video-container:-ms-fullscreen .secondary-subtitle-text.show {
+    opacity: 1 !important;
+    display: inline-block !important;
 }
 
 /* 全屏模式下隱藏畫中畫提示 */
@@ -1024,7 +1045,7 @@ h3 {
 .video-container:-webkit-full-screen .pip-hint,
 .video-container:-moz-full-screen .pip-hint,
 .video-container:-ms-fullscreen .pip-hint {
-    display: none;
+    display: none !important;
 }
 
 /* ===== 參考語言顯示 ===== */

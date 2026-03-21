@@ -4,10 +4,16 @@ Automatic video subtitle generation and translation system using WhisperX and Go
 
 ## 📚 Documentation
 
+### User Documentation
 - **[INSTALLATION.md](INSTALLATION.md)** - Complete installation guide with troubleshooting
 - **[UPGRADE_WHISPERX.md](UPGRADE_WHISPERX.md)** - WhisperX upgrade process and debugging history
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and updates
+
+### Developer Documentation
 - **[DESIGN.md](DESIGN.md)** - Technical design and architecture
+- **[docs/](docs/)** - Development docs, research, and future features
+  - [FUTURE_FEATURES.md](docs/FUTURE_FEATURES.md) - Planned features and roadmap
+  - [WHISPERX_SEGMENTATION.md](docs/WHISPERX_SEGMENTATION.md) - Subtitle segmentation control research
 
 ## 🏷️ Version History
 

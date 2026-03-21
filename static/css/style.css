@@ -318,13 +318,22 @@ h3 {
 
 .primary-subtitle-text,
 .secondary-subtitle-text {
-    padding: 8px 16px;
-    background: rgba(0, 0, 0, 0.8);
     border-radius: 4px;
     margin: 4px 0;
-    opacity: 0;
+    display: none; /* 默認完全隱藏 */
     transition: opacity 0.2s ease;
+}
+
+/* 只在有內容且顯示時才顯示背景和內容 */
+.primary-subtitle-text.show,
+.secondary-subtitle-text.show {
     display: inline-block;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.8);
+    opacity: 1;
+}
+.secondary-subtitle-text.show {
+    background: rgba(0, 0, 0, 0.8);
 }
 
 .primary-subtitle-text {
@@ -337,18 +346,12 @@ h3 {
 .secondary-subtitle-text {
     font-size: 14px;
     color: #e2e8f0;
-    opacity: 0.7;
     line-height: 1.4;
-}
-
-.primary-subtitle-text.show,
-.secondary-subtitle-text.show {
-    opacity: 1;
 }
 
 /* 單語言模式 - 只顯示主字幕 */
 .subtitle-mode-single .secondary-subtitle-text {
-    display: none;
+    display: none !important;
 }
 
 /* ===== 畫中畫觸發提示 ===== */

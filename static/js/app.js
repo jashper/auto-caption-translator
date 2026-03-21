@@ -610,12 +610,24 @@ async function loadVideoSubtitle(mode) {
             return;
         }
         
-        // 載入主字幕和副字幕數據
+        // 載入主字幕數據
         if (primaryLang) {
             await loadSubtitleData(primaryLang, 'primary');
+        } else {
+            primarySubtitleData = [];
         }
+        
+        // 載入副字幕數據（如果選擇了語言）
         if (secondaryLang) {
             await loadSubtitleData(secondaryLang, 'secondary');
+        } else {
+            // 副語言為「無字幕」時，清空數據並立即清除顯示
+            secondarySubtitleData = [];
+            const secondaryText = document.getElementById('secondary-subtitle-text');
+            if (secondaryText) {
+                secondaryText.textContent = '';
+                secondaryText.classList.remove('show');
+            }
         }
     }
     
@@ -681,11 +693,18 @@ function updateCustomSubtitles() {
     
     // 只在雙語模式下更新副字幕
     if (subtitleMode === 'dual') {
-        const secondarySub = findCurrentSubtitle(secondarySubtitleData, currentTime);
-        if (secondarySub) {
-            secondaryText.textContent = secondarySub.text;
-            secondaryText.classList.add('show');
+        // 檢查是否有副字幕數據
+        if (secondarySubtitleData && secondarySubtitleData.length > 0) {
+            const secondarySub = findCurrentSubtitle(secondarySubtitleData, currentTime);
+            if (secondarySub) {
+                secondaryText.textContent = secondarySub.text;
+                secondaryText.classList.add('show');
+            } else {
+                secondaryText.classList.remove('show');
+            }
         } else {
+            // 沒有副字幕數據時，確保完全隱藏
+            secondaryText.textContent = '';
             secondaryText.classList.remove('show');
         }
     } else {

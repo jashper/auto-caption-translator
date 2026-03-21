@@ -6,6 +6,15 @@
     <title>影片字幕翻譯系統</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
+<style>
+    .editor-header {
+        display: flex;
+    }
+
+    .editor-header .btn span {
+        white-space: nowrap
+    }
+</style>
 <body>
     <div class="container">
         <!-- 上傳區 -->
@@ -180,7 +189,7 @@
                     <div class="editor-controls">
                         <button id="track-playback-btn" class="btn btn-secondary btn-small track-btn" title="開啟後，編輯器會自動滾動到當前播放的字幕">
                             <span class="track-icon">👁️</span>
-                            <span>追蹤播放</span>
+                            <span class="smalltext">追蹤播放</span>
                         </button>
                         <select id="edit-language-select" class="language-select"></select>
                         <button id="save-subtitles-btn" class="btn btn-primary btn-small">儲存</button>

@@ -1268,6 +1268,8 @@ function toggleFullscreenContainer() {
 function handleFullscreenChange() {
     const overlay = document.getElementById('custom-subtitle-overlay');
     const videoContainer = document.getElementById('video-container');
+    const primaryText = document.getElementById('primary-subtitle-text');
+    const secondaryText = document.getElementById('secondary-subtitle-text');
     
     if (!overlay || !videoContainer) return;
     
@@ -1277,23 +1279,70 @@ function handleFullscreenChange() {
                         document.msFullscreenElement === videoContainer;
     
     if (isFullscreen) {
-        // 進入全屏時，強制顯示字幕層
-        overlay.style.display = 'block';
-        overlay.style.visibility = 'visible';
-        overlay.style.opacity = '1';
+        console.log('進入全屏模式');
         
-        // 確保字幕層在最上層
-        overlay.style.zIndex = '2147483647';
-        overlay.style.position = 'absolute';
+        // 強制設置字幕層樣式
+        overlay.style.cssText = `
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: absolute !important;
+            bottom: 100px !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            z-index: 2147483647 !important;
+            pointer-events: none !important;
+            text-align: center !important;
+            transform: translateX(0) !important;
+        `;
         
-        console.log('全屏模式：字幕層已啟用');
+        // 強制設置字幕文字樣式
+        if (primaryText) {
+            primaryText.style.cssText = `
+                display: inline-block !important;
+                padding: 8px 16px !important;
+                background: rgba(0, 0, 0, 0.8) !important;
+                border-radius: 4px !important;
+                margin: 4px 0 !important;
+                font-size: 2.5rem !important;
+                color: #ffffff !important;
+                font-weight: 500 !important;
+                line-height: 1.4 !important;
+                text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9) !important;
+            `;
+        }
+        
+        if (secondaryText) {
+            secondaryText.style.cssText = `
+                display: inline-block !important;
+                padding: 8px 16px !important;
+                background: rgba(0, 0, 0, 0.8) !important;
+                border-radius: 4px !important;
+                margin: 4px 0 !important;
+                font-size: 1.8rem !important;
+                color: #e2e8f0 !important;
+                line-height: 1.4 !important;
+                text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9) !important;
+            `;
+        }
+        
+        console.log('全屏字幕層已設置:', {
+            overlayDisplay: overlay.style.display,
+            overlayZIndex: overlay.style.zIndex,
+            overlayPosition: overlay.style.position,
+            primaryTextDisplay: primaryText ? primaryText.style.display : 'N/A',
+            secondaryTextDisplay: secondaryText ? secondaryText.style.display : 'N/A'
+        });
+        
     } else {
-        // 退出全屏時，恢復正常狀態
-        overlay.style.display = '';
-        overlay.style.visibility = '';
-        overlay.style.opacity = '';
-        
         console.log('退出全屏模式');
+        
+        // 退出全屏時，清除內聯樣式（恢復 CSS 控制）
+        overlay.style.cssText = '';
+        if (primaryText) primaryText.style.cssText = '';
+        if (secondaryText) secondaryText.style.cssText = '';
     }
 }
 

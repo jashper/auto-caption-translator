@@ -28,6 +28,9 @@ class SubtitleSegment:
     
     def __post_init__(self):
         """驗證資料有效性"""
+        # 自動 trim 文字
+        self.text = self.text.strip()
+        
         if self.index < 1:
             raise ValueError("index 必須大於或等於 1")
         if self.start_time < 0:

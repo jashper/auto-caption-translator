@@ -9,17 +9,95 @@
 git tag -l
 
 # 查看特定版本的詳細變更
-git show v2.1.0
+git show v2.2.0
 
 # 切換到特定版本（查看該版本的代碼）
-git checkout v2.1.0
+git checkout v2.2.0
 
 # 返回最新版本
 git checkout master
 
 # 比較兩個版本的差異
-git diff v2.0.0..v2.1.0
+git diff v2.1.0..v2.2.0
 ```
+
+---
+
+## [v2.2.0] - 2026-03-22
+
+**Git Tag:** `v2.2.0`
+
+### 重大功能 🚀
+
+#### 單語/雙語字幕模式
+- 新增單語模式：使用原生 HTML5 track，支持全屏播放和 CC 按鈕控制
+- 新增雙語模式：自定義渲染，支持主語言+副語言同時顯示
+- 用戶可在預覽時自由切換模式
+- 雙語模式會提示用戶不支援全屏字幕顯示
+
+#### CC 按鈕與頁面選擇器雙向同步
+- 頁面下拉選單選擇語言 → CC 按鈕自動同步
+- CC 按鈕選擇語言（全屏時）→ 頁面下拉選單自動更新
+- 無論在哪個模式下操作，都會保持同步
+- 從雙語模式切換回單語模式時，會記住 CC 按鈕的選擇
+
+#### 字幕編輯改進
+- 自動 trim 空白格：編輯時和儲存時都會自動清理多餘空白
+- 重置功能改進：永遠回到最初版本，而不是上次儲存的版本
+- 儲存後強制刷新預覽：解決瀏覽器緩存導致預覽不更新的問題
+- 後端模型層也會自動 trim 文字
+
+### Bug 修復 🐛
+
+#### 字幕顯示問題
+- 修復雙語模式下 textTracks 設為 disabled 導致 CC 按鈕無法使用的問題
+- 改用 hidden 模式，保持 CC 按鈕可用性
+- 修復切換模式時字幕殘留的問題
+
+#### 儲存和重置問題
+- 修復儲存後預覽不更新的問題（緩存問題）
+- 修復重置功能時好時壞的問題
+- 新增 initialSubtitlesCache 來保存每個語言的初始版本
+
+### 技術改進 ⚙️
+
+#### 前端架構
+- 新增 `initializeAllTracks()` 函數：統一管理所有語言的 track 元素
+- 新增 `setupTextTrackSync()` 函數：監聽 textTracks 變化並同步到頁面
+- 改進 `handleSubtitleModeChange()` 函數：切換模式時同步 CC 狀態
+- 改進 `loadVideoSubtitle()` 函數：區分單語和雙語的 track 處理邏輯
+
+#### 後端改進
+- `SubtitleSegment` 模型在 `__post_init__` 時自動 trim 文字
+- 確保所有字幕文字都沒有多餘空白
+
+### 用戶體驗改進 🎨
+
+- 單語模式提示：「💡 單語模式支持全屏播放和 CC 按鈕控制」
+- 雙語模式警告：「⚠️ 雙語模式不支援全屏播放，如需全屏請切換為單語模式」
+- 重置確認訊息更清楚：「確定要重置到最初版本嗎？所有修改都會遺失。」
+- 儲存成功後自動刷新預覽，無需手動切換語言
+
+### 文檔更新 📚
+
+- 新增 `QUICKSTART_v2.2.md` - 快速開始指南
+- 新增 `docs/DEPENDENCY_CLEANUP.md` - 依賴清理記錄
+- 更新 `docs/README.md` - 文檔索引
+
+### 技術細節 🔧
+
+**關鍵技術解決方案：**
+1. 使用 `hidden` 而非 `disabled` 來隱藏 textTracks（保持 CC 按鈕可用）
+2. 使用 `initialSubtitlesCache` 物件緩存每個語言的初始版本
+3. 儲存後使用 `?t=${Date.now()}` 時間戳避免緩存
+4. 監聽 `textTracks.change` 事件實現雙向同步
+
+**修改的文件：**
+- `static/js/app.js` - 主要邏輯改進
+- `static/css/style.css` - 樣式調整
+- `static/index.html` - UI 結構優化
+- `src/models/subtitle.py` - 自動 trim 功能
+- `docs/README.md` - 文檔更新
 
 ---
 

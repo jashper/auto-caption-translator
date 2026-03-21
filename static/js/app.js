@@ -3,7 +3,8 @@ let selectedFile = null;
 let currentJobId = null;
 let pollInterval = null;
 let currentSubtitles = [];
-let originalSubtitles = [];
+let originalSubtitles = []; // 當前編輯語言的原始版本（第一次載入）
+let initialSubtitlesCache = {}; // 所有語言的初始版本緩存 {lang: subtitles}
 let currentLanguage = 'en';
 let referenceLanguage = null;
 let referenceSubtitles = [];
@@ -249,14 +250,53 @@ function handleSubtitleModeChange(e) {
     
     const singleControls = document.getElementById('single-language-controls');
     const dualControls = document.getElementById('dual-language-controls');
+    const videoContainer = document.getElementById('video-container');
+    const primarySubtitleSelect = document.getElementById('primary-subtitle-select');
     
     if (subtitleMode === 'single') {
+        // 單語模式
         singleControls.style.display = 'block';
         dualControls.style.display = 'none';
+        videoContainer.classList.remove('subtitle-mode-dual');
+        videoContainer.classList.add('subtitle-mode-single');
+        
+        // 同步 CC 按鈕的當前狀態到單語下拉選單
+        if (videoPlayer.textTracks && primarySubtitleSelect) {
+            let activeTrack = null;
+            for (let i = 0; i < videoPlayer.textTracks.length; i++) {
+                const track = videoPlayer.textTracks[i];
+                if (track.mode === 'showing') {
+                    activeTrack = track;
+                    break;
+                }
+            }
+            
+            // 如果 CC 按鈕有選擇語言，同步到下拉選單
+            if (activeTrack) {
+                primarySubtitleSelect.value = activeTrack.language;
+                console.log(`切換到單語模式：同步 CC 狀態 ${activeTrack.language}`);
+            } else {
+                // CC 按鈕是關閉的，設為無字幕
+                primarySubtitleSelect.value = '';
+                console.log('切換到單語模式：CC 是關閉的');
+            }
+        }
+        
+        // 切換到單語模式
         loadVideoSubtitle('single');
     } else {
+        // 雙語模式
         singleControls.style.display = 'none';
         dualControls.style.display = 'block';
+        videoContainer.classList.remove('subtitle-mode-single');
+        videoContainer.classList.add('subtitle-mode-dual');
+        
+        // 確保所有 tracks 都存在（雙語模式也需要 tracks 以便 fullscreen 時 CC 按鈕可用）
+        if (Object.keys(availableLanguages).length > 0) {
+            initializeAllTracks(Object.keys(availableLanguages), null);
+        }
+        
+        // 切換到雙語模式
         loadVideoSubtitle('dual');
     }
 }
@@ -539,6 +579,18 @@ function showResults(subtitleFiles) {
     if (singleControls) singleControls.style.display = 'block';
     if (dualControls) dualControls.style.display = 'none';
     
+    // 設置容器為單語模式
+    const videoContainer = document.getElementById('video-container');
+    if (videoContainer) {
+        videoContainer.classList.remove('subtitle-mode-dual');
+        videoContainer.classList.add('subtitle-mode-single');
+    }
+    
+    // 初始化單語模式：添加所有語言的 track（讓 CC 按鈕可以切換）
+    if (subtitleFiles && Object.keys(subtitleFiles).length > 0) {
+        initializeAllTracks(Object.keys(subtitleFiles));
+    }
+    
     // 生成合併字幕複選框（卡片式）
     const mergeLanguageCards = document.getElementById('merge-language-cards');
     mergeLanguageCards.innerHTML = '';
@@ -565,7 +617,7 @@ function showResults(subtitleFiles) {
     }
 }
 
-// 載入影片字幕（使用自定義渲染）
+// 載入影片字幕（方案 C：自動判斷模式）
 async function loadVideoSubtitle(mode) {
     const videoContainer = document.getElementById('video-container');
     
@@ -580,22 +632,31 @@ async function loadVideoSubtitle(mode) {
     secondarySubtitleData = [];
     
     if (mode === 'single') {
+        // === 單語模式：使用原生 track ===
         const primarySubtitleSelect = document.getElementById('primary-subtitle-select');
         const selectedLang = primarySubtitleSelect.value;
         
         videoContainer.classList.remove('subtitle-mode-dual');
         videoContainer.classList.add('subtitle-mode-single');
         
-        if (!selectedLang) {
-            // 清除字幕顯示
-            clearCustomSubtitles();
-            return;
+        // 清除自定義字幕
+        clearCustomSubtitles();
+        
+        // 更新所有 textTracks 的顯示狀態（頁面 → CC）
+        if (videoPlayer.textTracks) {
+            for (let i = 0; i < videoPlayer.textTracks.length; i++) {
+                const track = videoPlayer.textTracks[i];
+                if (selectedLang && track.language === selectedLang) {
+                    track.mode = 'showing';
+                    console.log(`頁面 → CC: 顯示 ${selectedLang}`);
+                } else {
+                    track.mode = 'hidden';
+                }
+            }
         }
         
-        // 載入主字幕數據
-        await loadSubtitleData(selectedLang, 'primary');
-        
     } else if (mode === 'dual') {
+        // === 雙語模式：使用自定義渲染 ===
         const primarySubtitleSelectDual = document.getElementById('primary-subtitle-select-dual');
         const secondarySubtitleSelect = document.getElementById('secondary-subtitle-select');
         
@@ -604,6 +665,15 @@ async function loadVideoSubtitle(mode) {
         
         videoContainer.classList.remove('subtitle-mode-single');
         videoContainer.classList.add('subtitle-mode-dual');
+        
+        // 禁用所有 textTracks（確保原生字幕完全關閉）
+        if (videoPlayer.textTracks) {
+            for (let i = 0; i < videoPlayer.textTracks.length; i++) {
+                videoPlayer.textTracks[i].mode = 'hidden';
+            }
+        }
+        
+        console.log('雙語模式：已隱藏所有 textTracks');
         
         if (!primaryLang && !secondaryLang) {
             clearCustomSubtitles();
@@ -617,11 +687,10 @@ async function loadVideoSubtitle(mode) {
             primarySubtitleData = [];
         }
         
-        // 載入副字幕數據（如果選擇了語言）
+        // 載入副字幕數據
         if (secondaryLang) {
             await loadSubtitleData(secondaryLang, 'secondary');
         } else {
-            // 副語言為「無字幕」時，清空數據並立即清除顯示
             secondarySubtitleData = [];
             const secondaryText = document.getElementById('secondary-subtitle-text');
             if (secondaryText) {
@@ -629,10 +698,10 @@ async function loadVideoSubtitle(mode) {
                 secondaryText.classList.remove('show');
             }
         }
+        
+        // 啟動自定義字幕更新循環
+        startSubtitleUpdate();
     }
-    
-    // 啟動字幕更新循環
-    startSubtitleUpdate();
 }
 
 // 載入字幕數據
@@ -673,42 +742,54 @@ function startSubtitleUpdate() {
     subtitleUpdateInterval = setInterval(updateCustomSubtitles, 100);
 }
 
-// 更新自定義字幕顯示
+// 更新自定義字幕顯示（僅雙語模式）
 function updateCustomSubtitles() {
     if (!videoPlayer) return;
     
     const currentTime = videoPlayer.currentTime;
     const primaryText = document.getElementById('primary-subtitle-text');
     const secondaryText = document.getElementById('secondary-subtitle-text');
-    const subtitleMode = document.querySelector('input[name="subtitle-mode"]:checked')?.value || 'single';
     
-    // 更新主字幕
-    const primarySub = findCurrentSubtitle(primarySubtitleData, currentTime);
-    if (primarySub) {
-        primaryText.textContent = primarySub.text;
-        primaryText.classList.add('show');
-    } else {
-        primaryText.classList.remove('show');
-    }
+    // 檢查當前模式
+    const currentMode = document.querySelector('input[name="subtitle-mode"]:checked')?.value || 'single';
     
-    // 只在雙語模式下更新副字幕
-    if (subtitleMode === 'dual') {
-        // 檢查是否有副字幕數據
-        if (secondarySubtitleData && secondarySubtitleData.length > 0) {
-            const secondarySub = findCurrentSubtitle(secondarySubtitleData, currentTime);
-            if (secondarySub) {
-                secondaryText.textContent = secondarySub.text;
-                secondaryText.classList.add('show');
-            } else {
-                secondaryText.classList.remove('show');
-            }
-        } else {
-            // 沒有副字幕數據時，確保完全隱藏
+    // 單語模式下不更新自定義字幕（使用原生 track）
+    if (currentMode === 'single') {
+        if (primaryText) {
+            primaryText.textContent = '';
+            primaryText.classList.remove('show');
+        }
+        if (secondaryText) {
             secondaryText.textContent = '';
             secondaryText.classList.remove('show');
         }
-    } else {
-        // 單語模式下確保副字幕隱藏
+        return;
+    }
+    
+    // === 雙語模式：更新自定義字幕 ===
+    
+    // 更新主字幕
+    const primarySub = findCurrentSubtitle(primarySubtitleData, currentTime);
+    if (primarySub && primaryText) {
+        primaryText.textContent = primarySub.text;
+        primaryText.classList.add('show');
+    } else if (primaryText) {
+        primaryText.textContent = '';
+        primaryText.classList.remove('show');
+    }
+    
+    // 更新副字幕（只有在有數據時）
+    if (secondarySubtitleData && secondarySubtitleData.length > 0) {
+        const secondarySub = findCurrentSubtitle(secondarySubtitleData, currentTime);
+        if (secondarySub && secondaryText) {
+            secondaryText.textContent = secondarySub.text;
+            secondaryText.classList.add('show');
+        } else if (secondaryText) {
+            secondaryText.textContent = '';
+            secondaryText.classList.remove('show');
+        }
+    } else if (secondaryText) {
+        // 沒有副字幕數據時，確保完全隱藏
         secondaryText.textContent = '';
         secondaryText.classList.remove('show');
     }
@@ -755,7 +836,15 @@ async function loadSubtitlesForEdit() {
         }
         
         currentSubtitles = data.subtitles;
-        originalSubtitles = JSON.parse(JSON.stringify(data.subtitles));
+        
+        // 如果這個語言還沒有緩存初始版本，保存它
+        if (!initialSubtitlesCache[currentLanguage]) {
+            initialSubtitlesCache[currentLanguage] = JSON.parse(JSON.stringify(data.subtitles));
+            console.log(`已緩存 ${currentLanguage} 的初始版本`);
+        }
+        
+        // originalSubtitles 始終指向初始版本
+        originalSubtitles = JSON.parse(JSON.stringify(initialSubtitlesCache[currentLanguage]));
         
         // 更新參考語言選擇器（排除當前編輯語言）
         updateReferenceLanguageOptions();
@@ -877,7 +966,8 @@ function renderSubtitleEditor() {
         // 監聽編輯事件
         const textEdit = item.querySelector('.subtitle-text-edit');
         textEdit.addEventListener('input', () => {
-            currentSubtitles[idx].text = textEdit.textContent;
+            // 自動 trim 空白格
+            currentSubtitles[idx].text = textEdit.textContent.trim();
         });
         
         textEdit.addEventListener('focus', () => {
@@ -954,12 +1044,12 @@ async function saveSubtitles() {
     saveSubtitlesBtn.textContent = '儲存中...';
     
     try {
-        // 準備字幕數據
+        // 準備字幕數據（trim 所有文字）
         const subtitlesData = currentSubtitles.map(sub => ({
             index: sub.index,
             start_time: parseTimeToSeconds(sub.start_time),
             end_time: parseTimeToSeconds(sub.end_time),
-            text: sub.text
+            text: sub.text.trim() // 確保儲存時也 trim
         }));
         
         const response = await fetch(`/subtitle/${currentJobId}/${currentLanguage}`, {
@@ -976,10 +1066,22 @@ async function saveSubtitles() {
             throw new Error(data.error || '儲存失敗');
         }
         
-        // 更新原始字幕
-        originalSubtitles = JSON.parse(JSON.stringify(currentSubtitles));
+        // 更新原始字幕（不再更新，保持初始版本）
+        // originalSubtitles 保持不變，指向 initialSubtitlesCache
         
         showSuccess('儲存成功', '字幕已更新');
+        
+        // 強制重新載入所有 tracks（避免緩存問題）
+        const currentMode = document.querySelector('input[name="subtitle-mode"]:checked')?.value || 'single';
+        if (currentMode === 'single') {
+            // 單語模式：重新初始化所有 tracks
+            const primarySubtitleSelect = document.getElementById('primary-subtitle-select');
+            const selectedLang = primarySubtitleSelect?.value;
+            initializeAllTracks(Object.keys(availableLanguages), selectedLang);
+        } else {
+            // 雙語模式：重新載入字幕數據
+            await reloadCurrentSubtitle();
+        }
         
     } catch (error) {
         showError('儲存失敗', error.message);
@@ -991,10 +1093,16 @@ async function saveSubtitles() {
 
 // 重置字幕
 function resetSubtitles() {
-    if (confirm('確定要重置所有修改嗎？')) {
-        currentSubtitles = JSON.parse(JSON.stringify(originalSubtitles));
-        renderSubtitleEditor();
-        showSuccess('已重置', '字幕已恢復到上次儲存的狀態');
+    if (confirm('確定要重置到最初版本嗎？所有修改都會遺失。')) {
+        // 從緩存中恢復初始版本
+        if (initialSubtitlesCache[currentLanguage]) {
+            currentSubtitles = JSON.parse(JSON.stringify(initialSubtitlesCache[currentLanguage]));
+            originalSubtitles = JSON.parse(JSON.stringify(initialSubtitlesCache[currentLanguage]));
+            renderSubtitleEditor();
+            showSuccess('已重置', '字幕已恢復到最初版本');
+        } else {
+            showError('重置失敗', '找不到初始版本');
+        }
     }
 }
 
@@ -1387,4 +1495,132 @@ function toggleSubtitleVisibility() {
 // 獲取語言名稱
 function getLanguageName(langCode) {
     return availableLanguages[langCode] || langCode;
+}
+
+// 重新載入當前顯示的字幕（用於儲存後刷新）
+async function reloadCurrentSubtitle() {
+    const currentMode = document.querySelector('input[name="subtitle-mode"]:checked')?.value || 'single';
+    
+    if (currentMode === 'single') {
+        // 單語模式：檢查當前選擇的語言
+        const primarySubtitleSelect = document.getElementById('primary-subtitle-select');
+        const selectedLang = primarySubtitleSelect?.value;
+        
+        // 如果當前顯示的語言就是剛編輯的語言，重新載入
+        if (selectedLang === currentLanguage) {
+            console.log(`重新載入單語字幕: ${currentLanguage}`);
+            
+            // 重新初始化所有 tracks（帶時間戳避免緩存）
+            initializeAllTracks(Object.keys(availableLanguages), selectedLang);
+        }
+    } else if (currentMode === 'dual') {
+        // 雙語模式：檢查主語言或副語言
+        const primarySubtitleSelectDual = document.getElementById('primary-subtitle-select-dual');
+        const secondarySubtitleSelect = document.getElementById('secondary-subtitle-select');
+        
+        const primaryLang = primarySubtitleSelectDual?.value;
+        const secondaryLang = secondarySubtitleSelect?.value;
+        
+        // 如果編輯的是主語言，重新載入主語言
+        if (primaryLang === currentLanguage) {
+            console.log(`重新載入主語言: ${currentLanguage}`);
+            await loadSubtitleData(currentLanguage, 'primary');
+        }
+        
+        // 如果編輯的是副語言，重新載入副語言
+        if (secondaryLang === currentLanguage) {
+            console.log(`重新載入副語言: ${currentLanguage}`);
+            await loadSubtitleData(currentLanguage, 'secondary');
+        }
+        
+        // 如果字幕更新循環沒在運行，啟動它
+        if (!subtitleUpdateInterval) {
+            startSubtitleUpdate();
+        }
+    }
+}
+
+// 初始化所有語言的 track 元素（單語模式）
+function initializeAllTracks(languages, activeLanguage = null) {
+    if (!videoPlayer || !currentJobId) return;
+    
+    // 移除現有的所有 track
+    const existingTracks = videoPlayer.querySelectorAll('track');
+    existingTracks.forEach(track => track.remove());
+    
+    // 為每種語言添加 track 元素
+    languages.forEach(lang => {
+        const track = document.createElement('track');
+        track.kind = 'subtitles';
+        track.srclang = lang;
+        track.label = availableLanguages[lang] || lang;
+        track.src = `/download/${currentJobId}/${lang}?t=${Date.now()}`;
+        
+        videoPlayer.appendChild(track);
+    });
+    
+    console.log(`已初始化 ${languages.length} 個 track 元素`);
+    
+    // 等待 tracks 載入後設置活動語言
+    setTimeout(() => {
+        if (videoPlayer.textTracks) {
+            // 先全部設為 hidden
+            for (let i = 0; i < videoPlayer.textTracks.length; i++) {
+                videoPlayer.textTracks[i].mode = 'hidden';
+            }
+            
+            // 如果指定了活動語言，啟用它
+            if (activeLanguage) {
+                for (let i = 0; i < videoPlayer.textTracks.length; i++) {
+                    const track = videoPlayer.textTracks[i];
+                    if (track.language === activeLanguage) {
+                        track.mode = 'showing';
+                        console.log(`已啟用字幕: ${activeLanguage}`);
+                        break;
+                    }
+                }
+            }
+            
+            // 設置 textTracks 變化監聽器（雙向同步）
+            setupTextTrackSync();
+        }
+    }, 300);
+}
+
+// 設置 textTracks 與頁面下拉選單的雙向同步
+function setupTextTrackSync() {
+    if (!videoPlayer.textTracks) return;
+    
+    // 監聽 textTracks 的變化（CC 按鈕操作）
+    videoPlayer.textTracks.addEventListener('change', () => {
+        const currentMode = document.querySelector('input[name="subtitle-mode"]:checked')?.value || 'single';
+        const primarySubtitleSelect = document.getElementById('primary-subtitle-select');
+        
+        if (!primarySubtitleSelect) return;
+        
+        // 找到當前顯示的 track
+        let activeTrack = null;
+        for (let i = 0; i < videoPlayer.textTracks.length; i++) {
+            const track = videoPlayer.textTracks[i];
+            if (track.mode === 'showing') {
+                activeTrack = track;
+                break;
+            }
+        }
+        
+        // 同步到單語模式的頁面下拉選單（無論當前是什麼模式）
+        if (activeTrack) {
+            // CC 按鈕選擇了某個語言
+            if (primarySubtitleSelect.value !== activeTrack.language) {
+                primarySubtitleSelect.value = activeTrack.language;
+                console.log(`CC → 頁面: ${activeTrack.language} (當前模式: ${currentMode})`);
+            }
+        } else {
+            // CC 按鈕關閉了字幕
+            if (primarySubtitleSelect.value !== '') {
+                primarySubtitleSelect.value = '';
+                console.log(`CC → 頁面: 無字幕 (當前模式: ${currentMode})`);
+            }
+        }
+    });
 }

@@ -5,6 +5,9 @@ let pollInterval = null;
 let currentSubtitles = [];
 let originalSubtitles = [];
 let currentLanguage = 'en';
+let referenceLanguage = 'en';
+let showReference = false;
+let referenceSubtitles = [];
 let isEditing = false;
 let subtitleMode = 'single'; // 'single' or 'dual'
 let availableLanguages = {};
@@ -74,6 +77,33 @@ function setupEventListeners() {
     }
     if (batchDownloadBtn) {
         batchDownloadBtn.addEventListener('click', batchDownload);
+    }
+    
+    // 參考語言控制
+    const showReferenceToggle = document.getElementById('show-reference-toggle');
+    const referenceLanguageSelect = document.getElementById('reference-language-select');
+    
+    if (showReferenceToggle) {
+        showReferenceToggle.addEventListener('change', (e) => {
+            showReference = e.target.checked;
+            if (referenceLanguageSelect) {
+                referenceLanguageSelect.style.display = showReference ? 'inline-block' : 'none';
+            }
+            if (showReference && referenceLanguage) {
+                loadReferenceSubtitles();
+            } else {
+                renderSubtitleEditor();
+            }
+        });
+    }
+    
+    if (referenceLanguageSelect) {
+        referenceLanguageSelect.addEventListener('change', (e) => {
+            referenceLanguage = e.target.value;
+            if (showReference) {
+                loadReferenceSubtitles();
+            }
+        });
     }
     
     // 合併字幕
@@ -484,13 +514,34 @@ function showResults(subtitleFiles) {
     
     // 更新編輯器語言選擇器
     editLanguageSelect.innerHTML = '';
+    const referenceLanguageSelect = document.getElementById('reference-language-select');
+    if (referenceLanguageSelect) {
+        referenceLanguageSelect.innerHTML = '';
+    }
+    
     if (subtitleFiles) {
         for (const lang of Object.keys(subtitleFiles)) {
             const name = languages[lang] || lang;
+            
+            // 編輯語言選擇器
             const option = document.createElement('option');
             option.value = lang;
             option.textContent = name;
             editLanguageSelect.appendChild(option);
+            
+            // 參考語言選擇器
+            if (referenceLanguageSelect) {
+                const refOption = document.createElement('option');
+                refOption.value = lang;
+                refOption.textContent = name;
+                referenceLanguageSelect.appendChild(refOption);
+            }
+        }
+        
+        // 默認參考語言為英文（如果有的話）
+        if (subtitleFiles['en'] && referenceLanguageSelect) {
+            referenceLanguageSelect.value = 'en';
+            referenceLanguage = 'en';
         }
     }
     
@@ -672,6 +723,7 @@ function clearCustomSubtitles() {
 async function loadSubtitlesForEdit() {
     if (!currentJobId) return;
     
+    const editLanguageSelect = document.getElementById('edit-language-select');
     currentLanguage = editLanguageSelect.value;
     
     try {
@@ -683,17 +735,48 @@ async function loadSubtitlesForEdit() {
         }
         
         currentSubtitles = data.subtitles;
-        originalSubtitles = JSON.parse(JSON.stringify(data.subtitles)); // 深拷貝
+        originalSubtitles = JSON.parse(JSON.stringify(data.subtitles));
         
-        renderSubtitleEditor();
+        // 如果顯示參考語言，載入參考字幕
+        if (showReference && referenceLanguage) {
+            await loadReferenceSubtitles();
+        } else {
+            renderSubtitleEditor();
+        }
         
     } catch (error) {
         showError('載入字幕失敗', error.message);
     }
 }
 
+// 載入參考字幕
+async function loadReferenceSubtitles() {
+    if (!currentJobId || !referenceLanguage) {
+        renderSubtitleEditor();
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/preview/${currentJobId}/${referenceLanguage}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || '載入參考字幕失敗');
+        }
+        
+        referenceSubtitles = data.subtitles;
+        renderSubtitleEditor();
+        
+    } catch (error) {
+        console.error('載入參考字幕失敗:', error);
+        referenceSubtitles = [];
+        renderSubtitleEditor();
+    }
+}
+
 // 渲染字幕編輯器
 function renderSubtitleEditor() {
+    const subtitleEditorArea = document.getElementById('subtitle-editor-area');
     subtitleEditorArea.innerHTML = '';
     
     currentSubtitles.forEach((subtitle, idx) => {
@@ -703,10 +786,25 @@ function renderSubtitleEditor() {
         item.dataset.startTime = subtitle.start_time;
         item.dataset.endTime = subtitle.end_time;
         
+        // 如果顯示參考語言
+        let referenceHtml = '';
+        if (showReference && referenceSubtitles[idx]) {
+            const refText = referenceSubtitles[idx].text;
+            const refLangName = getLanguageName(referenceLanguage);
+            referenceHtml = `
+                <div class="subtitle-reference">
+                    <div class="subtitle-reference-label">參考 (${refLangName})</div>
+                    ${escapeHtml(refText)}
+                </div>
+            `;
+            item.classList.add('with-reference');
+        }
+        
         item.innerHTML = `
             <div class="subtitle-time-edit" onclick="seekToTime(${parseTimeToSeconds(subtitle.start_time)})">
                 ${subtitle.start_time} --> ${subtitle.end_time}
             </div>
+            ${referenceHtml}
             <div class="subtitle-text-edit" contenteditable="true" data-idx="${idx}">
                 ${escapeHtml(subtitle.text)}
             </div>

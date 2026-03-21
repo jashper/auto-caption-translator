@@ -145,6 +145,7 @@
                 <div class="download-subsection">
                     <h4 class="subsection-title">合併字幕下載</h4>
                     <p class="subsection-hint">選擇 2-3 種語言合併為單一字幕檔案（垂直排列）</p>
+                    <p class="subsection-note">💡 合併字幕適用於 VLC、PotPlayer 等播放器，適合語言學習和離線觀看。不支持網頁原生播放。</p>
                     
                     <div class="merge-language-cards" id="merge-language-cards"></div>
                     
@@ -191,6 +192,11 @@
                             <span class="track-icon">👁️</span>
                             <span class="smalltext">追蹤播放</span>
                         </button>
+                        <label class="checkbox-label" style="margin: 0 0.5rem;">
+                            <input type="checkbox" id="show-reference-toggle">
+                            <span>顯示參考語言</span>
+                        </label>
+                        <select id="reference-language-select" class="language-select" style="display: none;"></select>
                         <select id="edit-language-select" class="language-select"></select>
                         <button id="save-subtitles-btn" class="btn btn-primary btn-small">儲存</button>
                         <button id="reset-subtitles-btn" class="btn btn-secondary btn-small">重置</button>

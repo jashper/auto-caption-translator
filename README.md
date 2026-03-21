@@ -1,6 +1,13 @@
 # Video Subtitle Translator
 
-Automatic video subtitle generation and translation system using Whisper and Google Translate.
+Automatic video subtitle generation and translation system using WhisperX and Google Translate.
+
+## 📚 Documentation
+
+- **[INSTALLATION.md](INSTALLATION.md)** - Complete installation guide with troubleshooting
+- **[UPGRADE_WHISPERX.md](UPGRADE_WHISPERX.md)** - WhisperX upgrade process and debugging history
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and updates
+- **[DESIGN.md](DESIGN.md)** - Technical design and architecture
 
 ## Quick Start
 
@@ -16,7 +23,7 @@ Automatic video subtitle generation and translation system using Whisper and Goo
 
 ## Features
 
-- Automatic speech recognition using OpenAI Whisper
+- Automatic speech recognition using WhisperX (improved timestamp accuracy and sentence segmentation)
 - Selective translation to Traditional Chinese, Simplified Chinese, and Malay
 - Choose only the languages you need to save processing time
 - **Video player with subtitle preview**
@@ -68,16 +75,35 @@ video-subtitle-translator/
 ## Technical Stack
 
 - **Backend**: FastAPI, Uvicorn
-- **Speech Recognition**: WhisperX (enhanced Whisper with precise timestamp alignment)
+- **Speech Recognition**: WhisperX 3.7.2 (enhanced Whisper with precise timestamp alignment)
+- **Deep Learning**: PyTorch 2.8.0, torchaudio 2.8.0
 - **Translation**: deep-translator (Google Translate)
 - **Frontend**: HTML, CSS, JavaScript
 
 ## What's New in WhisperX
 
-This system uses **WhisperX** instead of standard Whisper for improved subtitle quality:
+This system uses **WhisperX 3.7.2** instead of standard Whisper for improved subtitle quality:
 
-- ✅ **More accurate timestamps** - Word-level alignment for precise timing
+- ✅ **More accurate timestamps** - Word-level alignment using forced alignment
 - ✅ **Better sentence segmentation** - Natural breaks at sentence boundaries
+- ✅ **Improved readability** - Complete sentences instead of fragmented phrases
+
+**Example comparison:**
+
+Standard Whisper:
+```
+1. I want to
+2. go to the store
+3. and buy some
+4. groceries
+```
+
+WhisperX:
+```
+1. I want to go to the store and buy some groceries.
+```
+
+For installation details and troubleshooting, see [INSTALLATION.md](INSTALLATION.md).
 - ✅ **Improved readability** - Subtitles flow more naturally
 - ✅ **Better translation quality** - Complete sentences improve translation accuracy
 

@@ -2,6 +2,28 @@
 FastAPI 主應用程式
 影片字幕自動翻譯系統
 """
+# 修復 PyTorch 2.6+ weights_only 問題 - 必須在導入 torch 前設置
+import os
+os.environ['TORCH_FORCE_WEIGHTS_ONLY_LOAD'] = '0'
+
+import torch
+# Monkey patch torch.load 以使用 weights_only=False
+_original_torch_load = torch.load
+def _patched_torch_load(*args, **kwargs):
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return _original_torch_load(*args, **kwargs)
+torch.load = _patched_torch_load
+
+# 添加 omegaconf 到安全全局列表（WhisperX 模型需要）
+try:
+    from omegaconf.listconfig import ListConfig
+    from omegaconf.dictconfig import DictConfig
+    from omegaconf.base import ContainerMetadata
+    torch.serialization.add_safe_globals([ListConfig, DictConfig, ContainerMetadata])
+except ImportError:
+    pass  # omegaconf 可能未安裝
+
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path

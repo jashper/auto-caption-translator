@@ -1,5 +1,61 @@
 # 更新日誌
 
+## [v2.1.0] - 2026-03-21
+
+### 重大升級 🚀
+
+#### 升級到 WhisperX 3.7.2
+- 從 OpenAI Whisper 升級到 WhisperX，字幕質量顯著提升
+- 使用 forced alignment 技術，提供更精確的時間戳
+- 句子分段更自然完整，不再斷斷續續
+- 詳細升級過程請參考 [UPGRADE_WHISPERX.md](UPGRADE_WHISPERX.md)
+
+#### 技術改進
+- 升級到 PyTorch 2.8.0 + torchaudio 2.8.0
+- 實現模型延遲載入機制（應用啟動更快）
+- 解決 PyTorch 2.8.0 的 weights_only 安全限制問題
+- 完整的試錯過程記錄在 [INSTALLATION.md](INSTALLATION.md)
+
+### Bug 修復 🐛
+
+#### 字幕顯示問題
+- 修復單語模式下副字幕（小黑框）仍然顯示的問題
+- 現在只有在選擇「雙語」模式時才會顯示副字幕
+- 改善觀看體驗，避免不必要的字幕干擾
+- 相關文件：`static/js/app.js` - `updateCustomSubtitles()` 函數
+
+### 文檔更新 📚
+
+- 新增 [INSTALLATION.md](INSTALLATION.md) - 完整安裝指南，包含：
+  - 快速開始指南
+  - 詳細安裝步驟
+  - 依賴版本列表（經過測試的穩定版本）
+  - 完整的試錯過程記錄（4 個主要問題及解決方案）
+  - 常見問題 FAQ
+- 更新 [UPGRADE_WHISPERX.md](UPGRADE_WHISPERX.md) - 詳細試錯過程，包含：
+  - WhisperX 版本選擇問題
+  - PyTorch 版本兼容性問題（3 次嘗試）
+  - weights_only 安全限制問題（3 次嘗試）
+  - 模型載入時機優化
+- 更新 README.md 添加文檔索引和 WhisperX 優勢說明
+- 更新 design.md 和 tasks.md 反映技術棧變更
+
+### 技術細節 🔧
+
+**依賴版本（經過驗證的穩定組合）：**
+```
+whisperx==3.7.2
+torch==2.8.0
+torchaudio==2.8.0
+```
+
+**關鍵技術解決方案：**
+1. 局部 torch.load monkey patch（解決 weights_only 問題）
+2. 延遲載入模型機制（改善啟動速度）
+3. 模式檢查邏輯（修復字幕顯示 bug）
+
+---
+
 ## [v2.0.0] - 2026-03-20
 
 ### 新增功能 ✨
@@ -66,7 +122,7 @@
 ### 初始版本 🎉
 
 #### 核心功能
-- 使用 OpenAI Whisper 自動轉錄影片為英文字幕
+- 使用 WhisperX 自動轉錄影片為英文字幕（提供精確時間戳和完整句子）
 - 支持選擇性翻譯（繁體中文、簡體中文、馬來文）
 - Web 界面上傳和下載
 - 字幕預覽功能

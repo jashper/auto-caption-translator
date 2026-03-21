@@ -30,17 +30,36 @@ class TranscriptionService:
         self.device = "cpu"  # 使用 CPU
         self.compute_type = "int8"  # CPU 使用 int8
         self.model = None
-        self._load_model()
+        # 延遲載入模型，避免啟動時的 weights_only 問題
+        # self._load_model()
     
     def _load_model(self) -> None:
         """載入 WhisperX 模型"""
         try:
             logger.info(f"正在載入 WhisperX 模型: {self.model_size}")
-            self.model = whisperx.load_model(
-                self.model_size, 
-                self.device, 
-                compute_type=self.compute_type
-            )
+            
+            # 完全禁用 weights_only 檢查（WhisperX 模型是可信的）
+            # 保存原始函數
+            original_load = torch.load
+            
+            # 創建強制 weights_only=False 的包裝函數
+            def force_weights_only_false(*args, **kwargs):
+                kwargs['weights_only'] = False
+                return original_load(*args, **kwargs)
+            
+            # 臨時替換 torch.load
+            torch.load = force_weights_only_false
+            
+            try:
+                self.model = whisperx.load_model(
+                    self.model_size, 
+                    self.device, 
+                    compute_type=self.compute_type
+                )
+            finally:
+                # 恢復原始函數
+                torch.load = original_load
+            
             logger.info(f"WhisperX 模型載入成功: {self.model_size}")
         except Exception as e:
             logger.error(f"載入 WhisperX 模型失敗: {e}")
@@ -89,6 +108,10 @@ class TranscriptionService:
         Returns:
             字幕片段列表
         """
+        # 延遲載入模型（第一次使用時）
+        if self.model is None:
+            self._load_model()
+        
         audio_path = None
         try:
             # 提取音訊

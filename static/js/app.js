@@ -668,6 +668,7 @@ function updateCustomSubtitles() {
     const currentTime = videoPlayer.currentTime;
     const primaryText = document.getElementById('primary-subtitle-text');
     const secondaryText = document.getElementById('secondary-subtitle-text');
+    const subtitleMode = document.querySelector('input[name="subtitle-mode"]:checked')?.value || 'single';
     
     // 更新主字幕
     const primarySub = findCurrentSubtitle(primarySubtitleData, currentTime);
@@ -678,12 +679,18 @@ function updateCustomSubtitles() {
         primaryText.classList.remove('show');
     }
     
-    // 更新副字幕
-    const secondarySub = findCurrentSubtitle(secondarySubtitleData, currentTime);
-    if (secondarySub) {
-        secondaryText.textContent = secondarySub.text;
-        secondaryText.classList.add('show');
+    // 只在雙語模式下更新副字幕
+    if (subtitleMode === 'dual') {
+        const secondarySub = findCurrentSubtitle(secondarySubtitleData, currentTime);
+        if (secondarySub) {
+            secondaryText.textContent = secondarySub.text;
+            secondaryText.classList.add('show');
+        } else {
+            secondaryText.classList.remove('show');
+        }
     } else {
+        // 單語模式下確保副字幕隱藏
+        secondaryText.textContent = '';
         secondaryText.classList.remove('show');
     }
 }

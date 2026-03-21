@@ -939,3 +939,90 @@ h3 {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--color-text-light);
 }
+
+/* ===== 全屏模式字幕修復 ===== */
+.video-container:fullscreen {
+    background: #000;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-container:-webkit-full-screen {
+    background: #000;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-container:-moz-full-screen {
+    background: #000;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-container:-ms-fullscreen {
+    background: #000;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 全屏模式下的影片 */
+.video-container:fullscreen video,
+.video-container:-webkit-full-screen video,
+.video-container:-moz-full-screen video,
+.video-container:-ms-fullscreen video {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* 全屏模式下的字幕疊加層保持可見 */
+.video-container:fullscreen .custom-subtitle-overlay,
+.video-container:-webkit-full-screen .custom-subtitle-overlay,
+.video-container:-moz-full-screen .custom-subtitle-overlay,
+.video-container:-ms-fullscreen .custom-subtitle-overlay {
+    position: absolute;
+    bottom: 100px;
+    left: 0;
+    right: 0;
+    z-index: 2147483647;
+    pointer-events: none;
+}
+
+/* 全屏模式下字幕文字樣式增強 */
+.video-container:fullscreen .primary-subtitle-text,
+.video-container:-webkit-full-screen .primary-subtitle-text,
+.video-container:-moz-full-screen .primary-subtitle-text,
+.video-container:-ms-fullscreen .primary-subtitle-text {
+    font-size: 2.5rem;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.video-container:fullscreen .secondary-subtitle-text,
+.video-container:-webkit-full-screen .secondary-subtitle-text,
+.video-container:-moz-full-screen .secondary-subtitle-text,
+.video-container:-ms-fullscreen .secondary-subtitle-text {
+    font-size: 1.8rem;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+/* 全屏模式下隱藏畫中畫提示 */
+.video-container:fullscreen .pip-hint,
+.video-container:-webkit-full-screen .pip-hint,
+.video-container:-moz-full-screen .pip-hint,
+.video-container:-ms-fullscreen .pip-hint {
+    display: none;
+}

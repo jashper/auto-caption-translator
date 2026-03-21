@@ -68,6 +68,17 @@ video-subtitle-translator/
 ## Technical Stack
 
 - **Backend**: FastAPI, Uvicorn
-- **Speech Recognition**: OpenAI Whisper
+- **Speech Recognition**: WhisperX (enhanced Whisper with precise timestamp alignment)
 - **Translation**: deep-translator (Google Translate)
 - **Frontend**: HTML, CSS, JavaScript
+
+## What's New in WhisperX
+
+This system uses **WhisperX** instead of standard Whisper for improved subtitle quality:
+
+- ✅ **More accurate timestamps** - Word-level alignment for precise timing
+- ✅ **Better sentence segmentation** - Natural breaks at sentence boundaries
+- ✅ **Improved readability** - Subtitles flow more naturally
+- ✅ **Better translation quality** - Complete sentences improve translation accuracy
+
+WhisperX is completely free and open-source, with no API costs.

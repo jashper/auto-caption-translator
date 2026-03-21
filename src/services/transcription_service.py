@@ -1,11 +1,13 @@
 """
 轉錄服務
-使用 Whisper 模型將影片轉錄為英文字幕
+使用 WhisperX 模型將影片轉錄為英文字幕（帶精確時間戳對齊）
 """
 import os
 from typing import List
-import whisper
+import whisperx
 import ffmpeg
+import gc
+import torch
 
 from src.models.subtitle import SubtitleSegment
 from src.config import WHISPER_MODEL_SIZE
@@ -15,7 +17,7 @@ logger = get_logger("transcription")
 
 
 class TranscriptionService:
-    """音訊轉錄服務"""
+    """音訊轉錄服務（使用 WhisperX）"""
     
     def __init__(self, model_size: str = WHISPER_MODEL_SIZE):
         """
@@ -25,18 +27,24 @@ class TranscriptionService:
             model_size: Whisper 模型大小 (tiny, base, small, medium, large)
         """
         self.model_size = model_size
+        self.device = "cpu"  # 使用 CPU
+        self.compute_type = "int8"  # CPU 使用 int8
         self.model = None
         self._load_model()
     
     def _load_model(self) -> None:
-        """載入 Whisper 模型"""
+        """載入 WhisperX 模型"""
         try:
-            logger.info(f"正在載入 Whisper 模型: {self.model_size}")
-            self.model = whisper.load_model(self.model_size)
-            logger.info(f"Whisper 模型載入成功: {self.model_size}")
+            logger.info(f"正在載入 WhisperX 模型: {self.model_size}")
+            self.model = whisperx.load_model(
+                self.model_size, 
+                self.device, 
+                compute_type=self.compute_type
+            )
+            logger.info(f"WhisperX 模型載入成功: {self.model_size}")
         except Exception as e:
-            logger.error(f"載入 Whisper 模型失敗: {e}")
-            raise RuntimeError(f"無法載入 Whisper 模型: {e}")
+            logger.error(f"載入 WhisperX 模型失敗: {e}")
+            raise RuntimeError(f"無法載入 WhisperX 模型: {e}")
     
     def extract_audio(self, video_path: str) -> str:
         """
@@ -73,7 +81,7 @@ class TranscriptionService:
     
     async def transcribe(self, video_path: str) -> List[SubtitleSegment]:
         """
-        轉錄影片為英文字幕
+        轉錄影片為英文字幕（使用 WhisperX 進行精確對齊）
         
         Args:
             video_path: 影片檔案路徑
@@ -86,14 +94,36 @@ class TranscriptionService:
             # 提取音訊
             audio_path = self.extract_audio(video_path)
             
-            # 使用 Whisper 轉錄
+            # 步驟 1: 使用 WhisperX 轉錄
             logger.info(f"正在轉錄音訊: {audio_path}")
-            result = self.model.transcribe(
-                audio_path,
-                language="en",
-                task="transcribe",
-                fp16=False  # CPU 模式使用 FP32
+            audio = whisperx.load_audio(audio_path)
+            result = self.model.transcribe(audio, batch_size=16)
+            
+            logger.info(f"轉錄完成，共 {len(result['segments'])} 個初始片段")
+            
+            # 步驟 2: 載入對齊模型並進行精確對齊
+            logger.info("正在進行時間戳對齊...")
+            align_model, metadata = whisperx.load_align_model(
+                language_code=result["language"], 
+                device=self.device
             )
+            
+            result = whisperx.align(
+                result["segments"], 
+                align_model, 
+                metadata, 
+                audio, 
+                self.device, 
+                return_char_alignments=False
+            )
+            
+            logger.info("時間戳對齊完成")
+            
+            # 清理對齊模型以釋放記憶體
+            del align_model
+            gc.collect()
+            if self.device != "cpu":
+                torch.cuda.empty_cache()
             
             # 轉換為 SubtitleSegment 列表
             segments = []
@@ -114,7 +144,7 @@ class TranscriptionService:
             for idx, segment in enumerate(segments, start=1):
                 segment.index = idx
             
-            logger.info(f"轉錄完成，共 {len(segments)} 個字幕片段")
+            logger.info(f"轉錄完成，共 {len(segments)} 個字幕片段（已對齊）")
             return segments
         except Exception as e:
             logger.error(f"轉錄失敗: {e}")

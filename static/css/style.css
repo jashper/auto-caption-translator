@@ -375,16 +375,9 @@ h3 {
     transform: translateY(0);
 }
 
-/* ===== 字幕顯示設置 ===== */
+/* ===== 字幕顯示設置（收合式） ===== */
 .subtitle-settings {
-    margin-bottom: var(--spacing-xl);
-    padding: var(--spacing-lg);
-    background: var(--color-bg-light);
-    border-radius: 12px;
-}
-
-.subtitle-settings h3 {
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
 }
 
 .subtitle-mode-toggle {
@@ -465,29 +458,141 @@ h3 {
     margin-bottom: var(--spacing-xl);
 }
 
-.download-subsection {
-    margin-bottom: var(--spacing-xl);
+.download-section h3 {
+    margin-bottom: var(--spacing-lg);
 }
 
-.subsection-title {
+/* 快速下載區 */
+.quick-download {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background: var(--color-bg-light);
+    border-radius: 12px;
+}
+
+.quick-download .btn-large {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-size: var(--font-size-lg);
+}
+
+.btn-icon-left {
+    width: 20px;
+    height: 20px;
+}
+
+.inline-checkbox {
+    margin: 0;
+    padding: var(--spacing-sm) var(--spacing-md);
+    white-space: nowrap;
+}
+
+/* 收合式區域 */
+.collapsible-section {
+    border: 2px solid var(--color-border);
+    border-radius: 12px;
+    margin-bottom: var(--spacing-md);
+    background: var(--color-bg);
+}
+
+.collapsible-header {
+    padding: var(--spacing-md) var(--spacing-lg);
     font-size: var(--font-size-lg);
     font-weight: 600;
     color: var(--color-text);
-    margin-bottom: var(--spacing-sm);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.2s ease;
 }
 
-.subsection-hint {
+.collapsible-header:hover {
+    background: var(--color-bg-light);
+}
+
+.collapsible-header::after {
+    content: '▼';
+    font-size: var(--font-size-sm);
+    color: var(--color-text-light);
+    transition: transform 0.2s ease;
+}
+
+details[open] .collapsible-header::after {
+    transform: rotate(180deg);
+}
+
+.collapsible-content {
+    padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+}
+
+.section-hint {
     color: var(--color-text-light);
     font-size: var(--font-size-sm);
     margin-bottom: var(--spacing-md);
+    line-height: 1.5;
 }
 
-.section-divider {
-    height: 1px;
-    background: var(--color-border);
-    margin: var(--spacing-xl) 0;
+/* 下載列表（緊湊式） */
+.download-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
 }
 
+.download-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md);
+    background: var(--color-bg-light);
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    transition: all 0.2s ease;
+}
+
+.download-row:hover {
+    border-color: var(--color-primary);
+    background: var(--color-bg);
+}
+
+.download-row-title {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.download-row-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.format-select-compact {
+    padding: 6px 12px;
+    font-size: var(--font-size-sm);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-bg);
+    cursor: pointer;
+}
+
+.btn-compact {
+    padding: 6px 16px;
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+
+/* 舊的下載卡片樣式（保留以防需要） */
 .download-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -548,7 +653,7 @@ h3 {
 /* ===== 合併字幕區 ===== */
 .merge-language-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: var(--spacing-sm);
     margin-bottom: var(--spacing-md);
 }
@@ -569,12 +674,12 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
     border: 2px solid var(--color-border);
     border-radius: 8px;
     background: var(--color-bg);
     transition: all 0.2s ease;
-    min-height: 60px;
+    min-height: 48px;
 }
 
 .language-card:hover .card-content {
@@ -587,7 +692,7 @@ h3 {
 }
 
 .language-card .card-title {
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-sm);
     font-weight: 500;
     color: var(--color-text);
     text-align: center;
@@ -642,15 +747,7 @@ h3 {
     flex: 1;
 }
 
-.batch-download {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-}
-
-.batch-download .btn {
-    flex: 1;
-}
+/* 舊的批量下載樣式（已移除） */
 
 /* ===== 編輯器 ===== */
 .editor-section {

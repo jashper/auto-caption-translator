@@ -442,33 +442,33 @@ function showResults(subtitleFiles) {
         }
     }
     
-    // 生成下載卡片
-    const downloadCards = document.getElementById('download-cards');
-    downloadCards.innerHTML = '';
+    // 生成下載列表（緊湊式）
+    const downloadList = document.getElementById('download-list');
+    downloadList.innerHTML = '';
     
     if (subtitleFiles) {
         for (const lang of Object.keys(subtitleFiles)) {
-            const name = languages[lang] || lang;
+            const name = availableLanguages[lang] || lang;
             
-            const card = document.createElement('div');
-            card.className = 'download-card';
-            card.innerHTML = `
-                <div class="download-card-title">${name}</div>
-                <div class="download-card-controls">
-                    <select class="format-select" data-lang="${lang}">
-                        <option value="vtt">VTT 格式</option>
-                        <option value="srt" selected>SRT 格式</option>
+            const row = document.createElement('div');
+            row.className = 'download-row';
+            row.innerHTML = `
+                <div class="download-row-title">${name}</div>
+                <div class="download-row-actions">
+                    <select class="format-select-compact" data-lang="${lang}">
+                        <option value="vtt">VTT</option>
+                        <option value="srt" selected>SRT</option>
                     </select>
+                    <button class="btn btn-secondary btn-compact" data-lang="${lang}">
+                        下載
+                    </button>
                 </div>
-                <button class="btn download-card-btn" data-lang="${lang}">
-                    下載
-                </button>
             `;
             
             // 添加下載事件
-            const downloadBtn = card.querySelector('.download-card-btn');
+            const downloadBtn = row.querySelector('.btn-compact');
             downloadBtn.addEventListener('click', () => {
-                const formatSelect = card.querySelector('.format-select');
+                const formatSelect = row.querySelector('.format-select-compact');
                 const format = formatSelect.value;
                 const url = format === 'srt' 
                     ? `/download/${currentJobId}/${lang}/srt`
@@ -476,7 +476,7 @@ function showResults(subtitleFiles) {
                 window.location.href = url;
             });
             
-            downloadCards.appendChild(card);
+            downloadList.appendChild(row);
         }
     }
     

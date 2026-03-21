@@ -92,96 +92,43 @@
                 </div>
             </div>
             
-            <!-- 字幕顯示設置 -->
-            <div class="subtitle-settings">
-                <h3>字幕顯示設置</h3>
-                <div class="subtitle-mode-toggle">
-                    <label class="radio-label">
-                        <input type="radio" name="subtitle-mode" value="single" checked>
-                        <span>單語言</span>
-                    </label>
-                    <label class="radio-label">
-                        <input type="radio" name="subtitle-mode" value="dual">
-                        <span>雙語</span>
-                    </label>
-                </div>
-                <div id="single-language-controls" class="language-controls">
-                    <select id="primary-subtitle-select" class="subtitle-select">
-                        <option value="">無字幕</option>
-                    </select>
-                </div>
-                <div id="dual-language-controls" class="language-controls" style="display: none;">
-                    <div class="dual-select-group">
-                        <div class="select-wrapper">
-                            <label>主語言</label>
-                            <select id="primary-subtitle-select-dual" class="subtitle-select">
-                                <option value="">選擇語言</option>
-                            </select>
-                        </div>
-                        <div class="select-wrapper">
-                            <label>副語言</label>
-                            <select id="secondary-subtitle-select" class="subtitle-select">
-                                <option value="">選擇語言</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 下載區 -->
-            <div class="download-section">
-                <h3>下載字幕</h3>
-                
-                <!-- 單語言下載 -->
-                <div class="download-subsection">
-                    <h4 class="subsection-title">單語言下載</h4>
-                    <div id="download-cards" class="download-cards"></div>
-                </div>
-                
-                <!-- 分隔線 -->
-                <div class="section-divider"></div>
-                
-                <!-- 合併字幕下載 -->
-                <div class="download-subsection">
-                    <h4 class="subsection-title">合併字幕下載</h4>
-                    <p class="subsection-hint">選擇 2-3 種語言合併為單一字幕檔案（垂直排列）</p>
-                    <p class="subsection-note">💡 合併字幕適用於 VLC、PotPlayer 等播放器，適合語言學習和離線觀看。不支持網頁原生播放。</p>
-                    
-                    <div class="merge-language-cards" id="merge-language-cards"></div>
-                    
-                    <div id="merge-selection-hint" class="merge-hint">請選擇 2-3 種語言</div>
-                    
-                    <div class="merge-controls">
-                        <div class="merge-format-group">
-                            <label class="control-label">格式</label>
-                            <select id="merge-format-select" class="format-select">
-                                <option value="vtt">VTT 格式</option>
-                                <option value="srt" selected>SRT 格式</option>
-                            </select>
-                        </div>
-                        <button id="generate-merged-btn" class="btn btn-secondary" disabled>
-                            生成合併字幕
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- 分隔線 -->
-                <div class="section-divider"></div>
-                
-                <!-- 批量下載 -->
-                <div class="download-subsection">
-                    <h4 class="subsection-title">批量下載</h4>
-                    <div class="batch-download">
-                        <button id="batch-download-btn" class="btn btn-secondary">
-                            下載所有字幕（ZIP）
-                        </button>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="include-video-checkbox">
-                            <span>包含影片</span>
+            <!-- 字幕顯示設置（收合式） -->
+            <details class="collapsible-section">
+                <summary class="collapsible-header">字幕顯示設置</summary>
+                <div class="collapsible-content">
+                    <div class="subtitle-mode-toggle">
+                        <label class="radio-label">
+                            <input type="radio" name="subtitle-mode" value="single" checked>
+                            <span>單語言</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="subtitle-mode" value="dual">
+                            <span>雙語</span>
                         </label>
                     </div>
+                    <div id="single-language-controls" class="language-controls">
+                        <select id="primary-subtitle-select" class="subtitle-select">
+                            <option value="">無字幕</option>
+                        </select>
+                    </div>
+                    <div id="dual-language-controls" class="language-controls" style="display: none;">
+                        <div class="dual-select-group">
+                            <div class="select-wrapper">
+                                <label>主語言</label>
+                                <select id="primary-subtitle-select-dual" class="subtitle-select">
+                                    <option value="">選擇語言</option>
+                                </select>
+                            </div>
+                            <div class="select-wrapper">
+                                <label>副語言</label>
+                                <select id="secondary-subtitle-select" class="subtitle-select">
+                                    <option value="">選擇語言</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </details>
             
             <!-- 編輯器 -->
             <div class="editor-section">
@@ -201,6 +148,60 @@
                     </div>
                 </div>
                 <div id="subtitle-editor-area" class="subtitle-editor-area"></div>
+            </div>
+            
+            <!-- 下載區 -->
+            <div class="download-section">
+                <h3>下載字幕</h3>
+                
+                <!-- 快速下載（最顯眼） -->
+                <div class="quick-download">
+                    <button id="batch-download-btn" class="btn btn-primary btn-large">
+                        <svg class="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        下載所有字幕（ZIP）
+                    </button>
+                    <label class="checkbox-label inline-checkbox">
+                        <input type="checkbox" id="include-video-checkbox">
+                        <span>包含影片</span>
+                    </label>
+                </div>
+                
+                <!-- 單語言下載（緊湊列表） -->
+                <details class="collapsible-section" open>
+                    <summary class="collapsible-header">單語言下載</summary>
+                    <div class="collapsible-content">
+                        <div id="download-list" class="download-list"></div>
+                    </div>
+                </details>
+                
+                <!-- 合併字幕下載（收合） -->
+                <details class="collapsible-section">
+                    <summary class="collapsible-header">合併字幕下載</summary>
+                    <div class="collapsible-content">
+                        <p class="section-hint">選擇 2-3 種語言合併為單一字幕檔案，適用於 VLC、PotPlayer 等播放器</p>
+                        
+                        <div class="merge-language-cards" id="merge-language-cards"></div>
+                        
+                        <div id="merge-selection-hint" class="merge-hint">請選擇 2-3 種語言</div>
+                        
+                        <div class="merge-controls">
+                            <div class="merge-format-group">
+                                <label class="control-label">格式</label>
+                                <select id="merge-format-select" class="format-select">
+                                    <option value="vtt">VTT</option>
+                                    <option value="srt" selected>SRT</option>
+                                </select>
+                            </div>
+                            <button id="generate-merged-btn" class="btn btn-secondary" disabled>
+                                生成合併字幕
+                            </button>
+                        </div>
+                    </div>
+                </details>
             </div>
         </section>
 

@@ -1056,10 +1056,3 @@ h3 {
     border-radius: 6px;
     border-left: 3px solid var(--color-primary);
 }
-
-/* 添加語言按鈕激活狀態 */
-#add-language-btn.active {
-    background: var(--color-primary);
-    color: white;
-    border-color: var(--color-primary);
-}

@@ -10,14 +10,9 @@ Automatic video subtitle generation and translation system using WhisperX and Go
 
 ## � Screenshots
 
-**Upload & Configure**
-![Upload](docs/screenshots/upload.png)
-
-**Subtitle Editor with Video Player**
-![Subtitle Editor](docs/screenshots/subtitle-editor.png)
-
-**Download in Multiple Languages & Formats**
-![Download](docs/screenshots/download.png)
+| Upload & Configure | Subtitle Editor | Download |
+|---|---|---|
+| <img src="docs/screenshots/upload.png" width="280"> | <img src="docs/screenshots/subtitle-editor.png" width="280"> | <img src="docs/screenshots/download.png" width="280"> |
 
 ## �📚 Documentation
 

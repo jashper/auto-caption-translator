@@ -8,7 +8,18 @@
 
 Automatic video subtitle generation and translation system using WhisperX and Google Translate.
 
-## 📚 Documentation
+## � Screenshots
+
+**Upload & Configure**
+![Upload](docs/screenshots/upload.png)
+
+**Subtitle Editor with Video Player**
+![Subtitle Editor](docs/screenshots/subtitle-editor.png)
+
+**Download in Multiple Languages & Formats**
+![Download](docs/screenshots/download.png)
+
+## �📚 Documentation
 
 ### User Documentation
 - **[INSTALLATION.md](INSTALLATION.md)** - Complete installation guide

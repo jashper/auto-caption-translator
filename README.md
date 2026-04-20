@@ -1,5 +1,11 @@
 # Video Subtitle Translator
 
+![Version](https://img.shields.io/badge/Version-v2.5.0-blue)
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+![GPU](https://img.shields.io/badge/GPU-CUDA%20Supported-76B900?logo=nvidia&logoColor=white)
+
 Automatic video subtitle generation and translation system using WhisperX and Google Translate.
 
 ## 📚 Documentation

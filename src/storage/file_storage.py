@@ -11,8 +11,6 @@ from fastapi import UploadFile
 
 from src.config import (
     STORAGE_BASE_DIR,
-    UPLOAD_DIR,
-    SUBTITLE_DIR,
     JOB_DIR,
     CLEANUP_HOURS
 )
@@ -32,8 +30,6 @@ class FileStorage:
             base_dir: 基礎目錄（用於測試時覆蓋）
         """
         self.base_dir = base_dir or STORAGE_BASE_DIR
-        self.upload_dir = self.base_dir / "uploads"
-        self.subtitle_dir = self.base_dir / "subtitles"
         self.job_dir = self.base_dir / "jobs"
         
         # 確保目錄存在
@@ -41,8 +37,18 @@ class FileStorage:
     
     def _ensure_directories(self) -> None:
         """確保所有必要目錄存在"""
-        for directory in [self.base_dir, self.upload_dir, self.subtitle_dir, self.job_dir]:
+        for directory in [self.base_dir, self.job_dir]:
             directory.mkdir(parents=True, exist_ok=True)
+    
+    def _get_job_folder(self, job_id: str) -> Path:
+        """取得任務資料夾路徑"""
+        return self.job_dir / job_id
+    
+    def _ensure_job_folder(self, job_id: str) -> Path:
+        """確保任務資料夾存在"""
+        folder = self._get_job_folder(job_id)
+        folder.mkdir(parents=True, exist_ok=True)
+        return folder
     
     async def save_uploaded_file(self, file: UploadFile, job_id: str) -> str:
         """
@@ -57,7 +63,8 @@ class FileStorage:
         """
         # 取得檔案副檔名
         ext = Path(file.filename).suffix
-        file_path = self.upload_dir / f"{job_id}{ext}"
+        job_folder = self._ensure_job_folder(job_id)
+        file_path = job_folder / f"source{ext}"
         
         try:
             # 寫入檔案
@@ -82,8 +89,9 @@ class FileStorage:
             影片檔案路徑
         """
         # 尋找符合的檔案（可能有不同副檔名）
+        job_folder = self._get_job_folder(job_id)
         for ext in [".mp4", ".avi", ".mov", ".mkv"]:
-            path = self.upload_dir / f"{job_id}{ext}"
+            path = job_folder / f"source{ext}"
             if path.exists():
                 return str(path)
         
@@ -100,12 +108,12 @@ class FileStorage:
         Returns:
             字幕檔案路徑
         """
-        subtitle_job_dir = self.subtitle_dir / job_id
-        return str(subtitle_job_dir / f"{language}.vtt")
+        job_folder = self._get_job_folder(job_id)
+        return str(job_folder / f"{language}.vtt")
     
     def get_subtitle_dir(self, job_id: str) -> Path:
         """
-        取得字幕目錄路徑
+        取得字幕目錄路徑（即任務資料夾）
         
         Args:
             job_id: 任務識別碼
@@ -113,11 +121,11 @@ class FileStorage:
         Returns:
             字幕目錄路徑
         """
-        return self.subtitle_dir / job_id
+        return self._get_job_folder(job_id)
     
     def ensure_subtitle_dir(self, job_id: str) -> Path:
         """
-        確保字幕目錄存在
+        確保字幕目錄存在（即任務資料夾）
         
         Args:
             job_id: 任務識別碼
@@ -125,9 +133,7 @@ class FileStorage:
         Returns:
             字幕目錄路徑
         """
-        subtitle_job_dir = self.subtitle_dir / job_id
-        subtitle_job_dir.mkdir(parents=True, exist_ok=True)
-        return subtitle_job_dir
+        return self._ensure_job_folder(job_id)
     
     def get_job_state_path(self, job_id: str) -> str:
         """
@@ -149,20 +155,11 @@ class FileStorage:
             job_id: 任務識別碼
         """
         try:
-            # 刪除影片檔案
-            try:
-                video_path = self.get_video_path(job_id)
-                if os.path.exists(video_path):
-                    os.remove(video_path)
-                    logger.info(f"已刪除影片檔案: {video_path}")
-            except FileNotFoundError:
-                pass
-            
-            # 刪除字幕目錄
-            subtitle_job_dir = self.get_subtitle_dir(job_id)
-            if subtitle_job_dir.exists():
-                shutil.rmtree(subtitle_job_dir)
-                logger.info(f"已刪除字幕目錄: {subtitle_job_dir}")
+            # 刪除任務資料夾（包含影片、音訊、字幕）
+            job_folder = self._get_job_folder(job_id)
+            if job_folder.exists():
+                shutil.rmtree(job_folder)
+                logger.info(f"已刪除任務資料夾: {job_folder}")
             
             # 保留任務狀態檔案（用於查詢歷史記錄）
             logger.info(f"已清理任務 {job_id} 的檔案")
@@ -183,32 +180,18 @@ class FileStorage:
         deleted_count = 0
         
         try:
-            # 清理舊的影片檔案
-            for file_path in self.upload_dir.iterdir():
-                if file_path.is_file():
-                    file_time = datetime.fromtimestamp(file_path.stat().st_mtime)
-                    if file_time < cutoff_time:
-                        file_path.unlink()
+            # 清理舊的任務資料夾和狀態檔案
+            for entry in self.job_dir.iterdir():
+                entry_time = datetime.fromtimestamp(entry.stat().st_mtime)
+                if entry_time < cutoff_time:
+                    if entry.is_dir():
+                        shutil.rmtree(entry)
                         deleted_count += 1
-                        logger.debug(f"已刪除舊影片檔案: {file_path}")
-            
-            # 清理舊的字幕目錄
-            for dir_path in self.subtitle_dir.iterdir():
-                if dir_path.is_dir():
-                    dir_time = datetime.fromtimestamp(dir_path.stat().st_mtime)
-                    if dir_time < cutoff_time:
-                        shutil.rmtree(dir_path)
+                        logger.debug(f"已刪除舊任務資料夾: {entry}")
+                    elif entry.is_file():
+                        entry.unlink()
                         deleted_count += 1
-                        logger.debug(f"已刪除舊字幕目錄: {dir_path}")
-            
-            # 清理舊的任務狀態檔案
-            for file_path in self.job_dir.iterdir():
-                if file_path.is_file():
-                    file_time = datetime.fromtimestamp(file_path.stat().st_mtime)
-                    if file_time < cutoff_time:
-                        file_path.unlink()
-                        deleted_count += 1
-                        logger.debug(f"已刪除舊任務狀態檔案: {file_path}")
+                        logger.debug(f"已刪除舊任務狀態檔案: {entry}")
             
             if deleted_count > 0:
                 logger.info(f"清理完成，共刪除 {deleted_count} 個舊檔案/目錄")

@@ -12,6 +12,15 @@ from src.utils.logger import get_logger
 logger = get_logger("error_handler")
 
 
+class UserFriendlyError(Exception):
+    """用戶友善錯誤，攜帶 error_code 自動對應中文訊息"""
+
+    def __init__(self, error_code: str, details: str = None):
+        self.error_code = error_code
+        self.details = details
+        super().__init__(error_code)
+
+
 # 錯誤代碼和使用者友善訊息對照表
 ERROR_MESSAGES = {
     "INVALID_FORMAT": {
@@ -118,13 +127,22 @@ async def general_exception_handler(request: Request, exc: Exception):
     Returns:
         JSON 錯誤回應
     """
+    # UserFriendlyError：回傳友善訊息
+    if isinstance(exc, UserFriendlyError):
+        error_response = get_error_response(exc.error_code, exc.details)
+        logger.warning(f"用戶錯誤 [{exc.error_code}]: {exc.details}")
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=error_response.dict()
+        )
+
+    # 其他異常：記錄完整錯誤，但不洩漏給前端
     logger.error(f"發生未處理的異常: {exc}", exc_info=True)
     
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
-            "error": "伺服器內部錯誤",
-            "error_code": "INTERNAL_ERROR",
-            "details": str(exc)
+            "error": "伺服器內部錯誤。請稍後再試",
+            "error_code": "INTERNAL_ERROR"
         }
     )

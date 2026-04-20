@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from pythonjsonlogger import jsonlogger
 
-from src.config import LOG_LEVEL, LOG_FILE, LOG_DIR
+from src.config import LOG_LEVEL, LOG_FILE, LOG_DIR, TRANSLATION_METRICS_LOG
 
 # 確保日誌目錄存在
 LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -67,3 +67,30 @@ def get_logger(name: str) -> logging.Logger:
         日誌記錄器
     """
     return logging.getLogger(f"video-subtitle-translator.{name}")
+
+
+def get_metrics_logger() -> logging.Logger:
+    """
+    獲取翻譯 metrics 專用日誌記錄器
+    寫入獨立檔案 logs/translation_metrics.log
+    """
+    metrics_logger = logging.getLogger("translation_metrics")
+    metrics_logger.setLevel(logging.INFO)
+    
+    # 避免重複添加 handler
+    if metrics_logger.handlers:
+        return metrics_logger
+    
+    handler = logging.FileHandler(TRANSLATION_METRICS_LOG, encoding='utf-8')
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter(
+        '%(asctime)s | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    handler.setFormatter(formatter)
+    metrics_logger.addHandler(handler)
+    
+    # 不要把訊息往上層 logger 傳（避免重複出現在 app.log）
+    metrics_logger.propagate = False
+    
+    return metrics_logger

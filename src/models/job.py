@@ -36,6 +36,7 @@ class JobState:
         updated_at: 更新時間
         completed_at: 完成時間
         error_message: 錯誤訊息
+        detected_language: 檢測到的原語言代碼 (例如: 'en', 'zh', 'ms')
         subtitle_files: 字幕檔案路徑字典 {language: file_path}
     """
     job_id: str
@@ -49,7 +50,13 @@ class JobState:
     updated_at: datetime
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
+    detected_language: Optional[str] = None
+    source_language: Optional[str] = None
+    primary_language: Optional[str] = None
+    language_distribution: Optional[dict] = None
+    language_mismatch: bool = False
     subtitle_files: dict[str, str] = field(default_factory=dict)
+    estimated_seconds: Optional[float] = None
     
     def __post_init__(self):
         """驗證資料有效性"""
@@ -75,7 +82,13 @@ class JobState:
             "updated_at": self.updated_at.isoformat(),
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "error_message": self.error_message,
-            "subtitle_files": self.subtitle_files
+            "detected_language": self.detected_language,
+            "source_language": self.source_language,
+            "primary_language": self.primary_language,
+            "language_distribution": self.language_distribution,
+            "language_mismatch": self.language_mismatch,
+            "subtitle_files": self.subtitle_files,
+            "estimated_seconds": self.estimated_seconds
         }
     
     @classmethod
@@ -98,7 +111,17 @@ class JobState:
         if data.get("completed_at"):
             data["completed_at"] = datetime.fromisoformat(data["completed_at"])
         
-        return cls(**data)
+        # 向後相容：舊任務可能沒有新欄位
+        data.setdefault("primary_language", data.get("source_language"))
+        data.setdefault("language_distribution", None)
+        data.setdefault("language_mismatch", False)
+        
+        # 過濾未知欄位（向後相容）
+        import dataclasses
+        valid_fields = {f.name for f in dataclasses.fields(cls)}
+        filtered = {k: v for k, v in data.items() if k in valid_fields}
+        
+        return cls(**filtered)
     
     def update_progress(self, progress: int, stage: str) -> None:
         """

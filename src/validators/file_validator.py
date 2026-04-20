@@ -3,6 +3,7 @@
 驗證上傳的影片檔案是否符合要求
 """
 import os
+import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -45,6 +46,13 @@ class ValidationResult:
         return cls(is_valid=False, error_message=error_message, error_code=error_code)
 
 
+# UUID 格式：8-4-4-4-12 的十六進位字元
+UUID_PATTERN = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    re.IGNORECASE
+)
+
+
 class Validator:
     """檔案驗證器"""
     
@@ -54,6 +62,21 @@ class Validator:
         self.max_file_size = MAX_FILE_SIZE
         self.max_duration = MAX_VIDEO_DURATION
         self.min_disk_space = MIN_DISK_SPACE
+    
+    def validate_job_id(self, job_id: str) -> ValidationResult:
+        """
+        驗證 job_id 是否為合法 UUID 格式，防止路徑注入攻擊
+        
+        Args:
+            job_id: 任務識別碼
+            
+        Returns:
+            驗證結果
+        """
+        if not job_id or not UUID_PATTERN.match(job_id):
+            logger.warning(f"可疑請求：無效的 job_id 格式: {job_id}")
+            return ValidationResult.failure("無效的任務 ID", "INVALID_JOB_ID")
+        return ValidationResult.success()
     
     def validate_file_format(self, filename: str) -> bool:
         """

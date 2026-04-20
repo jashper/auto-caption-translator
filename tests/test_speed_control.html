@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>播放速度控制測試</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            display: block;
+        }
+        .speed-selector {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(15, 23, 42, 0.95);
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .video-container:hover .speed-selector {
+            opacity: 1;
+        }
+        .speed-selector label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .speed-selector select {
+            padding: 6px 12px;
+            font-size: 13px;
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+        .status {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        .success {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 播放速度控制測試</h1>
+        
+        <div class="info">
+            <strong>測試說明：</strong>
+            <ol>
+                <li>將鼠標移到視頻左上角，速度選單會淡入</li>
+                <li>選擇不同的速度選項</li>
+                <li>視頻應該立即以選定速度播放</li>
+                <li>查看下方的狀態信息</li>
+            </ol>
+        </div>
+
+        <div class="video-container">
+            <!-- 使用 Big Buck Bunny 測試視頻 -->
+            <video id="test-video" controls>
+                <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+                您的瀏覽器不支援視頻播放
+            </video>
+            
+            <div class="speed-selector">
+                <label for="test-speed-select">速度</label>
+                <select id="test-speed-select">
+                    <option value="0.5">0.5×</option>
+                    <option value="0.75">0.75×</option>
+                    <option value="1" selected>1× 正常</option>
+                    <option value="1.25">1.25×</option>
+                    <option value="1.5">1.5×</option>
+                    <option value="2">2×</option>
+                    <option value="3">3×</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="status" id="status">
+            等待測試...
+        </div>
+
+        <div>
+            <button onclick="testSpeed(0.5)">測試 0.5×</button>
+            <button onclick="testSpeed(1)">測試 1×</button>
+            <button onclick="testSpeed(2)">測試 2×</button>
+            <button onclick="testSpeed(3)">測試 3×</button>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('test-video');
+        const speedSelect = document.getElementById('test-speed-select');
+        const statusDiv = document.getElementById('status');
+
+        // 記錄初始化
+        function log(message, isSuccess = true) {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = isSuccess ? 'success' : 'error';
+            statusDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            console.log(message);
+        }
+
+        // 設置播放速度
+        function setPlaybackSpeed(speed) {
+            if (!video) {
+                log('錯誤：找不到視頻元素', false);
+                return;
+            }
+            
+            video.playbackRate = speed;
+            
+            // 更新下拉選單
+            if (speedSelect) {
+                speedSelect.value = speed;
+            }
+            
+            log(`✓ 播放速度已設置為: ${speed}x`);
+            log(`✓ 當前實際速度: ${video.playbackRate}x`);
+        }
+
+        // 測試速度按鈕
+        function testSpeed(speed) {
+            log(`測試速度: ${speed}x`);
+            setPlaybackSpeed(speed);
+            
+            // 如果視頻暫停，自動播放
+            if (video.paused) {
+                video.play();
+                log('✓ 視頻已開始播放');
+            }
+        }
+
+        // 綁定下拉選單事件
+        if (speedSelect) {
+            speedSelect.addEventListener('change', (e) => {
+                const speed = parseFloat(e.target.value);
+                log(`從下拉選單選擇速度: ${speed}x`);
+                setPlaybackSpeed(speed);
+            });
+            log('✓ 播放速度選單已綁定');
+        } else {
+            log('✗ 錯誤：找不到速度選單元素', false);
+        }
+
+        // 檢查視頻元素
+        if (video) {
+            log('✓ 視頻元素已找到');
+            
+            video.addEventListener('loadedmetadata', () => {
+                log('✓ 視頻元數據已加載');
+                log(`視頻時長: ${video.duration.toFixed(2)} 秒`);
+            });
+            
+            video.addEventListener('play', () => {
+                log(`✓ 視頻開始播放 (速度: ${video.playbackRate}x)`);
+            });
+            
+            video.addEventListener('ratechange', () => {
+                log(`✓ 播放速度已改變: ${video.playbackRate}x`);
+            });
+        } else {
+            log('✗ 錯誤：找不到視頻元素', false);
+        }
+
+        // 初始化完成
+        log('✓ 測試頁面初始化完成');
+        log('提示：將鼠標移到視頻左上角查看速度選單');
+    </script>
+</body>
+</html>

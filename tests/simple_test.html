@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>簡單測試</title>
+    <style>
+        body { margin: 20px; font-family: Arial, sans-serif; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .video-box {
+            position: relative;
+            background: #000;
+            width: 100%;
+            height: 400px;
+            border: 2px solid #ccc;
+        }
+        .speed-control {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 10;
+        }
+        .speed-control select {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        .corner-marker {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .top-left { top: 5px; left: 5px; background: red; }
+        .top-right { top: 5px; right: 5px; background: green; }
+        .bottom-left { bottom: 5px; left: 5px; background: blue; }
+        .bottom-right { bottom: 5px; right: 5px; background: yellow; color: black; }
+        .info { margin: 20px 0; padding: 15px; background: #f0f0f0; border-radius: 5px; }
+        video { width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>位置測試</h1>
+        
+        <div class="info">
+            <strong>說明：</strong><br>
+            - 綠色圓圈 = 右上角（速度控制應該在這裡）<br>
+            - 紅色圓圈 = 左上角<br>
+            - 藍色圓圈 = 左下角<br>
+            - 黃色圓圈 = 右下角<br>
+            <br>
+            <strong>問題：</strong>如果速度控制顯示在藍色圓圈（左下角）附近，說明 CSS 有問題。
+        </div>
+
+        <div class="video-box">
+            <div class="corner-marker top-left">左上</div>
+            <div class="corner-marker top-right">右上</div>
+            <div class="corner-marker bottom-left">左下</div>
+            <div class="corner-marker bottom-right">右下</div>
+            
+            <div class="speed-control">
+                <label>速度：</label>
+                <select id="speed" onchange="alert('選擇了: ' + this.value + '×')">
+                    <option value="0.5">0.5×</option>
+                    <option value="1" selected>1×</option>
+                    <option value="2">2×</option>
+                    <option value="3">3×</option>
+                </select>
+            </div>
+            
+            <video controls>
+                <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+            </video>
+        </div>
+
+        <div class="info" style="margin-top: 20px;">
+            <strong>測試結果：</strong><br>
+            <span id="result">請查看速度控制的位置...</span>
+        </div>
+
+        <button onclick="checkPosition()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">
+            檢查位置
+        </button>
+    </div>
+
+    <script>
+        function checkPosition() {
+            const speedControl = document.querySelector('.speed-control');
+            const videoBox = document.querySelector('.video-box');
+            const result = document.getElementById('result');
+            
+            if (speedControl && videoBox) {
+                const controlRect = speedControl.getBoundingClientRect();
+                const boxRect = videoBox.getBoundingClientRect();
+                
+                const relativeTop = controlRect.top - boxRect.top;
+                const relativeLeft = controlRect.left - boxRect.left;
+                const relativeRight = boxRect.right - controlRect.right;
+                const relativeBottom = boxRect.bottom - controlRect.bottom;
+                
+                let position = '';
+                if (relativeTop < 100 && relativeRight < 100) {
+                    position = '✅ 正確！在右上角';
+                } else if (relativeTop < 100 && relativeLeft < 100) {
+                    position = '❌ 錯誤！在左上角';
+                } else if (relativeBottom < 100 && relativeLeft < 100) {
+                    position = '❌ 錯誤！在左下角';
+                } else if (relativeBottom < 100 && relativeRight < 100) {
+                    position = '❌ 錯誤！在右下角';
+                } else {
+                    position = '❓ 位置不明確';
+                }
+                
+                result.innerHTML = `
+                    <strong>${position}</strong><br><br>
+                    詳細信息：<br>
+                    - 距離頂部: ${relativeTop.toFixed(0)}px<br>
+                    - 距離左側: ${relativeLeft.toFixed(0)}px<br>
+                    - 距離右側: ${relativeRight.toFixed(0)}px<br>
+                    - 距離底部: ${relativeBottom.toFixed(0)}px<br>
+                    <br>
+                    CSS 樣式：<br>
+                    - position: ${getComputedStyle(speedControl).position}<br>
+                    - top: ${getComputedStyle(speedControl).top}<br>
+                    - right: ${getComputedStyle(speedControl).right}<br>
+                    - left: ${getComputedStyle(speedControl).left}<br>
+                    - bottom: ${getComputedStyle(speedControl).bottom}
+                `;
+            }
+        }
+        
+        // 自動檢查
+        window.addEventListener('load', () => {
+            setTimeout(checkPosition, 500);
+        });
+    </script>
+</body>
+</html>

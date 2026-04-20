@@ -3,6 +3,10 @@ cd /d "%~dp0"
 
 title Video Subtitle Translator
 
+echo ============================================
+echo   Video Subtitle Translator
+echo ============================================
+echo.
 echo Starting server...
 echo Open: http://localhost:8000
 echo Press Ctrl+C to stop
@@ -13,4 +17,14 @@ set TORCH_FORCE_WEIGHTS_ONLY_LOAD=0
 
 venv\Scripts\python.exe -m uvicorn src.main:app --host 127.0.0.1 --port 8000
 
-pause
+if %errorlevel% neq 0 (
+    echo.
+    echo ============================================
+    echo   ERROR: Server exited with error code %errorlevel%
+    echo   Please check the error messages above.
+    echo ============================================
+)
+
+echo.
+echo Server has stopped. Press any key to close...
+pause >nul

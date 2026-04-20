@@ -10,6 +10,7 @@ ENV/
 *.egg-info/
 dist/
 build/
+.pytest_cache/
 
 # 環境變數
 .env
@@ -22,6 +23,21 @@ logs/
 storage/uploads/
 storage/subtitles/
 storage/jobs/
+
+# 媒體和字幕檔案
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wav
+*.srt
+*.vtt
+
+# 模型檔案（避免意外上傳 WhisperX / HuggingFace 模型）
+*.pt
+*.bin
+*.onnx
+*.safetensors
 
 # IDE
 .vscode/
@@ -39,3 +55,52 @@ desktop.ini
 *.tmp
 *.bak
 *.cache
+
+# 版本檢查臨時文件
+installed_packages.txt
+installed_packages_clean.txt
+installed_packages_utf8.txt
+installed_packages_full.txt
+requirements-test.txt
+tools/installed_packages*.txt
+
+# Copilot / AI 助手設定（個人化，不公開）
+.github/skills/
+.github/prompt/
+
+# 內部開發文檔（不對外公開）
+CLEANUP_SUMMARY.md
+HOTFIX_v2.4.1.md
+IMPLEMENTATION_v2.4.0.md
+RELEASE_v2.3.0.md
+RELEASE_v2.4.1.md
+RELEASE_v2.4.2.md
+UPGRADE_v2.4.2.md
+VERSION_COMPARISON.md
+VERSION_CONTROL_SUMMARY.md
+MASTER_TASK_LIST.md
+summary.md
+tasks/
+docs/prompts/
+
+# 個人備忘
+如何提交到Git.txt
+📖 使用指南.txt
+使用說明.txt
+
+# 臨時調試和修復文檔
+*_FIX.md
+*_FIXED.txt
+*_DEBUG.txt
+TROUBLESHOOTING.md
+SPEED_CONTROL_*.md
+UI_DESIGN_*.md
+KEYBOARD_*.txt
+CACHE_*.txt
+VIDEO_*.txt
+TESTING_*.md
+VERSION_CONTROL.md
+VERSION.md
+QUICK_START.md
+USER_GUIDE.md
+QUICKSTART_*.md

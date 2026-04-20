@@ -5,15 +5,14 @@ Automatic video subtitle generation and translation system using WhisperX and Go
 ## 📚 Documentation
 
 ### User Documentation
-- **[INSTALLATION.md](INSTALLATION.md)** - Complete installation guide with troubleshooting
-- **[UPGRADE_WHISPERX.md](UPGRADE_WHISPERX.md)** - WhisperX upgrade process and debugging history
+- **[INSTALLATION.md](INSTALLATION.md)** - Complete installation guide
+- **[MAINTENANCE.md](MAINTENANCE.md)** - Version management and troubleshooting
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and updates
 
 ### Developer Documentation
 - **[DESIGN.md](DESIGN.md)** - Technical design and architecture
-- **[docs/](docs/)** - Development docs, research, and future features
-  - [FUTURE_FEATURES.md](docs/FUTURE_FEATURES.md) - Planned features and roadmap
-  - [WHISPERX_SEGMENTATION.md](docs/WHISPERX_SEGMENTATION.md) - Subtitle segmentation control research
+- **[UPGRADE_WHISPERX.md](UPGRADE_WHISPERX.md)** - WhisperX upgrade history
+- **[docs/](docs/)** - Additional development documentation
 
 ## 🏷️ Version History
 
@@ -36,7 +35,13 @@ git checkout master
 **Available versions:**
 - `v1.0.0` - Initial release with basic subtitle generation
 - `v2.0.0` - Added video player, subtitle editor, and batch download
-- `v2.1.0` - WhisperX upgrade with improved subtitle quality (current)
+- `v2.1.0` - WhisperX upgrade with improved subtitle quality
+- `v2.2.0` - Single/dual subtitle mode and CC button sync
+- `v2.3.0` - Playback speed control and PiP improvements
+- `v2.4.0` - Multi-language auto-detection and intelligent translation
+- `v2.4.1` - Hotfix for Chinese video processing
+- `v2.4.2` - Fixed language selection issue and model optimization
+- `v2.5.0` - Custom HuggingFace models, GPU auto-detection, bulk translation, ASS format (current)
 
 For detailed changes in each version, see [CHANGELOG.md](CHANGELOG.md).
 
@@ -49,7 +54,7 @@ For detailed changes in each version, see [CHANGELOG.md](CHANGELOG.md).
 5. Wait for processing to complete
 6. **Watch video with synchronized subtitles**
 7. **Edit subtitles if needed**
-8. Download subtitles in your chosen languages (VTT or SRT format)
+8. Download subtitles in your chosen languages (VTT, SRT, or ASS format)
 9. **Or batch download all subtitles at once**
 
 ## Features
@@ -58,11 +63,18 @@ For detailed changes in each version, see [CHANGELOG.md](CHANGELOG.md).
 - Selective translation to Traditional Chinese, Simplified Chinese, and Malay
 - Choose only the languages you need to save processing time
 - **Video player with subtitle preview**
+- **Playback speed control (0.5× to 3×)** - Adjust video speed for learning or review
+- **Picture-in-Picture (PiP) mode** - Scroll while watching with synchronized subtitles
 - **Edit subtitles directly in the browser**
 - **Real-time subtitle synchronization with video playback**
 - **Click subtitle to jump to video timestamp**
+- **Keyboard shortcuts** - Space to play/pause, arrow keys to skip
+- **Single/Dual subtitle mode** - Choose between native HTML5 or custom dual-language display
 - **Batch download all subtitles as ZIP**
-- **Support both VTT and SRT formats**
+- **Support VTT, SRT, and ASS formats**
+- **GPU auto-detection** - Automatically uses CUDA GPU for 5-10x faster transcription
+- **Custom HuggingFace models** - Use community fine-tuned models for better language-specific recognition
+- **Bulk translation** - Translates all subtitles in batches for ~10x speed improvement
 - **Save edited subtitles to server**
 - Web-based interface
 - Local processing (no cloud upload)
@@ -73,6 +85,52 @@ For detailed changes in each version, see [CHANGELOG.md](CHANGELOG.md).
 - Python 3.10+
 - FFmpeg (must be installed separately)
 - 2GB+ free disk space
+
+## Storage Configuration
+
+All uploaded files, audio, and subtitles are stored **outside the project folder** to avoid polluting the Git repository.
+
+| Setting | Default | Description |
+|---|---|---|
+| `BASE_STORAGE_PATH` | `D:/02_VideoTranslator` | Root folder for all job files |
+
+Each job gets its own folder:
+
+```
+D:\02_VideoTranslator\
+  jobs\
+    <job_id>.json          ← Job state
+    <job_id>\
+      source.mp4           ← Uploaded file
+      audio.wav            ← Extracted audio (auto-deleted after transcription)
+      en.vtt               ← Source language subtitle
+      zh-TW.vtt            ← Translated subtitles
+      ...
+```
+
+**To change the storage path**, set the environment variable before starting the server:
+
+```bash
+set BASE_STORAGE_PATH=E:/my_custom_path
+```
+
+Or add it to your `.env` file:
+
+```env
+BASE_STORAGE_PATH=E:/my_custom_path
+```
+
+> **Warning:** If the storage path is invalid or the disk is full, uploads and subtitle generation will fail.
+
+Make sure the following entries are in your `.gitignore`:
+
+```
+D:/02_VideoTranslator/
+*.mp4
+*.wav
+*.srt
+*.vtt
+```
 
 ## Supported Formats
 
@@ -108,8 +166,34 @@ video-subtitle-translator/
 - **Backend**: FastAPI, Uvicorn
 - **Speech Recognition**: WhisperX 3.7.2 (enhanced Whisper with precise timestamp alignment)
 - **Deep Learning**: PyTorch 2.8.0, torchaudio 2.8.0
-- **Translation**: deep-translator (Google Translate)
+- **Translation**: Google Translate (with NLLB-200 as backup option)
 - **Frontend**: HTML, CSS, JavaScript
+
+## Translation Engine
+
+This system uses **Google Translate** for subtitle translation.
+
+### Why Google Translate?
+
+- ✅ High translation quality
+- ✅ Completely free
+- ✅ Supports multiple languages
+- ✅ No additional configuration needed
+
+### Backup Option: NLLB-200
+
+The system has a prepared backup plan to switch to NLLB-200 model if needed:
+
+- ✅ Fully offline operation
+- ✅ No rate limits
+- ✅ Privacy protection
+- ⚠️ Requires model download (2.4GB)
+- ⚠️ Slightly lower translation quality
+
+**Monitoring & Backup Plan**: We monitor Google Translate's stability monthly and can switch to NLLB-200 within 1-2 days if issues arise.
+
+For detailed comparison, see: [Translation Model Comparison](docs/TRANSLATION_MODEL_COMPARISON.md)  
+For monitoring plan, see: [Translation Monitoring Plan](docs/TRANSLATION_MONITORING_PLAN.md)
 
 ## What's New in WhisperX
 

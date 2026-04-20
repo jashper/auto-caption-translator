@@ -48,10 +48,11 @@ START.bat
 
 ### 1. 系統要求
 
-- Python 3.8+
+- Python 3.10+
 - ffmpeg（用於音訊處理）
-- 至少 4GB RAM
+- 至少 8GB RAM（建議，模型載入需要較多記憶體）
 - 至少 2GB 磁碟空間（用於模型緩存）
+- GPU（可選）：NVIDIA CUDA GPU 可加速 5-10 倍
 
 ### 2. 安裝 ffmpeg
 
@@ -95,15 +96,17 @@ source venv/bin/activate
 ### 4. 安裝 Python 依賴
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-locked.txt
 ```
 
-這會安裝所有必要的套件，包括：
-- FastAPI 和 Uvicorn（Web 框架）
-- WhisperX（語音轉錄）
-- PyTorch 和 torchaudio（深度學習框架）
-- deep-translator（翻譯服務）
-- 其他輔助套件
+**驗證安裝：**
+```bash
+python check_versions.py
+```
+
+> **注意**：首次運行時，WhisperX 會自動下載約 1.5GB 的模型文件。這些文件會緩存在 `~/.cache/` 目錄，後續運行不需要重新下載。
+
+> **版本不一致？** 執行 `pip install -r requirements-locked.txt --force-reinstall`。詳細說明請參考 [MAINTENANCE.md](MAINTENANCE.md)。
 
 ### 5. 配置環境變量
 
@@ -114,21 +117,26 @@ copy .env.example .env
 編輯 `.env` 文件：
 
 ```env
-# Whisper 模型大小（tiny, base, small, medium, large）
+# Whisper 模型大小（tiny, base, small, medium, large-v2, large-v3）
+# 也可填入 HuggingFace repo ID（例如：MediaTek-Research/Breeze-ASR-26）
+# CPU 建議：base / small / medium
+# GPU 建議：large-v2（WhisperX 推薦）/ large-v3
 WHISPER_MODEL_SIZE=base
+
+# 裝置設定（auto=自動偵測 GPU, cpu=強制 CPU, cuda=強制 GPU）
+DEVICE=auto
 
 # 並發處理任務數量
 MAX_CONCURRENT_JOBS=2
 
-# 檔案保留時間（小時）
-FILE_RETENTION_HOURS=24
+# 儲存路徑（預設為專案目錄下的 storage/，可改為絕對路徑）
+BASE_STORAGE_PATH=./storage
 
-# 最大檔案大小（MB）
-MAX_FILE_SIZE_MB=500
-
-# 最大影片時長（秒）
-MAX_VIDEO_DURATION_SECONDS=3600
+# 自動清理時間（小時）
+CLEANUP_HOURS=24
 ```
+
+> **可選：** `BASE_STORAGE_PATH` 預設為專案目錄下的 `storage/`，無需修改即可使用。如果你想將檔案儲存到其他位置（例如空間較大的磁碟），可改為絕對路徑。
 
 ### 6. 首次運行
 

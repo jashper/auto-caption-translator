@@ -25,6 +25,7 @@ class SubtitleSegment:
     text: str
     language: str
     translation_failed: bool = False
+    dirty: bool = False
     
     def __post_init__(self):
         """驗證資料有效性"""
@@ -41,7 +42,8 @@ class SubtitleSegment:
             raise ValueError("start_time 必須小於或等於 end_time")
         if not self.text.strip():
             raise ValueError("text 不能為空")
-        if self.language not in ["en", "zh-TW", "zh-CN", "ms"]:
+        # 支援的語言：包括 zh（WhisperX 檢測結果）
+        if self.language not in ["en", "zh", "zh-TW", "zh-CN", "ms"]:
             raise ValueError(f"不支援的語言: {self.language}")
     
     def to_dict(self) -> dict:
@@ -57,7 +59,8 @@ class SubtitleSegment:
             "end_time": self.end_time,
             "text": self.text,
             "language": self.language,
-            "translation_failed": self.translation_failed
+            "translation_failed": self.translation_failed,
+            "dirty": self.dirty
         }
     
     @classmethod
@@ -71,7 +74,10 @@ class SubtitleSegment:
         Returns:
             SubtitleSegment 實例
         """
-        return cls(**data)
+        # 過濾掉未知的 key（向後相容）
+        valid_fields = {'index', 'start_time', 'end_time', 'text', 'language', 'translation_failed', 'dirty'}
+        filtered = {k: v for k, v in data.items() if k in valid_fields}
+        return cls(**filtered)
     
     def format_vtt_timestamp(self, seconds: float) -> str:
         """

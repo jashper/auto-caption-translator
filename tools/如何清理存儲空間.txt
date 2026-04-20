@@ -1,0 +1,172 @@
+# 如何清理存儲空間
+
+## storage 文件夾說明
+
+`storage/` 文件夾是系統運行時使用的存儲目錄，包含：
+
+1. **storage/uploads/** - 存放用戶上傳的視頻文件（.mp4 等）
+2. **storage/subtitles/** - 存放生成的字幕文件（.vtt, .srt）
+3. **storage/jobs/** - 存放任務狀態信息（.json）
+
+這些文件會隨著使用累積，佔用大量磁盤空間。
+
+## 是否有 video 文件夾？
+
+沒有 `video/` 文件夾。你可能看到的是：
+- `storage/uploads/` - 這裡存放上傳的視頻
+- 或者 `venv/` - Python 虛擬環境（不要刪除！）
+
+## 清理方法
+
+### 方法 1：使用清理腳本（推薦）
+
+我們提供了三個清理腳本，選擇一個使用：
+
+#### 選項 A：PowerShell 腳本（最推薦）
+右鍵點擊 `CLEAN_STORAGE.ps1`，選擇「使用 PowerShell 運行」
+
+如果出現安全提示，執行：
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+#### 選項 B：簡化批處理腳本
+雙擊運行 `清理存儲空間.bat`
+
+#### 選項 C：完整批處理腳本
+雙擊運行 `CLEAN_STORAGE.bat`
+
+### 方法 2：手動刪除（使用文件管理器）
+1. 打開 `video-subtitle-translator\storage\uploads\` 文件夾
+2. 選擇所有文件（Ctrl + A）
+3. 刪除（Delete 鍵）
+4. 對 `subtitles\` 和 `jobs\` 文件夾重複相同操作
+
+### 方法 3：完全刪除 storage 文件夾
+
+如果你想完全清空，可以刪除整個 storage 文件夾。
+系統啟動時會自動重新創建。
+
+```powershell
+# 刪除整個 storage 文件夾
+Remove-Item -Path storage -Recurse -Force
+```
+
+下次啟動 START.bat 時，系統會自動創建空的 storage 文件夾。
+
+### 方法 4：只刪除舊文件（保留最近的）
+
+如果你想保留最近的文件，可以手動選擇刪除：
+
+1. 打開 `storage\uploads\` 文件夾
+2. 按修改日期排序
+3. 選擇舊的文件刪除
+4. 對應的字幕文件夾也要刪除（在 `storage\subtitles\` 中）
+
+## 自動清理功能
+
+系統有自動清理功能，預設保留 24 小時內的文件。
+
+如果想調整保留時間，編輯 `.env` 文件：
+
+```
+CLEANUP_HOURS=24    # 改為你想要的小時數
+```
+
+例如：
+- `CLEANUP_HOURS=1` - 只保留 1 小時
+- `CLEANUP_HOURS=48` - 保留 2 天
+- `CLEANUP_HOURS=168` - 保留 7 天
+
+## 注意事項
+
+### ✅ 可以安全刪除
+- `storage/uploads/` - 上傳的視頻（可以重新上傳）
+- `storage/subtitles/` - 生成的字幕（可以重新生成）
+- `storage/jobs/` - 任務狀態（舊任務可以刪除）
+- `logs/app.log` - 日誌文件（可以刪除）
+
+### ⚠️ 不要刪除
+- `venv/` - Python 虛擬環境（刪除後需要重新安裝）
+- `src/` - 源代碼
+- `static/` - 前端文件
+- `.env` - 環境配置
+- `requirements.txt` - 依賴列表
+
+### ❌ 絕對不要刪除
+- `.git/` - Git 版本控制（刪除後無法提交代碼）
+
+## 查看磁盤使用情況
+
+### Windows PowerShell
+```powershell
+# 查看 storage 文件夾大小
+Get-ChildItem -Path storage -Recurse | Measure-Object -Property Length -Sum
+
+# 查看各子文件夾大小
+Get-ChildItem -Path storage -Directory | ForEach-Object {
+    $size = (Get-ChildItem $_.FullName -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
+    Write-Host "$($_.Name): $([math]::Round($size, 2)) MB"
+}
+```
+
+### 文件管理器
+1. 右鍵點擊 `storage` 文件夾
+2. 選擇「屬性」
+3. 查看「大小」
+
+## 清理後的效果
+
+清理後：
+- 磁盤空間釋放
+- 系統運行更快
+- 但之前的任務記錄會消失
+- 需要重新上傳視頻才能查看字幕
+
+## 建議的清理頻率
+
+根據使用情況：
+- 輕度使用（每週幾個視頻）：每月清理一次
+- 中度使用（每天幾個視頻）：每週清理一次
+- 重度使用（每天很多視頻）：每天清理一次或設置自動清理
+
+## 快速清理腳本
+
+專案提供了三個清理腳本：
+
+### CLEAN_STORAGE.ps1（PowerShell 版本 - 最推薦）
+- 彩色輸出，更友好
+- 更可靠，不會有編碼問題
+- 右鍵選擇「使用 PowerShell 運行」
+
+### 清理存儲空間.bat（簡化版）
+- 簡單快速
+- 雙擊運行
+- 適合快速清理
+
+### CLEAN_STORAGE.bat（完整版）
+- 詳細輸出
+- 雙擊運行
+- 顯示每個步驟
+
+選擇任何一個使用即可！
+
+## 如果批處理腳本出錯
+
+如果運行 .bat 文件出現錯誤（如 "obs\ is not recognized"），請使用 PowerShell 版本：
+
+1. 右鍵點擊 `CLEAN_STORAGE.ps1`
+2. 選擇「使用 PowerShell 運行」
+3. 如果提示安全警告，在 PowerShell 中執行：
+   ```powershell
+   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+   ```
+4. 再次運行腳本
+
+## 總結
+
+- `storage/` 是運行時數據，可以安全刪除
+- 沒有 `video/` 文件夾，視頻在 `storage/uploads/`
+- 推薦：刪除文件，保留文件夾結構
+- 或者：完全刪除 storage，系統會自動重建
+- 不要刪除 `venv/`, `src/`, `.git/` 等重要文件夾

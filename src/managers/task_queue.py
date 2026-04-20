@@ -56,27 +56,29 @@ class TaskQueue:
         await self.queue.put((job_id, process_func, args, kwargs))
         logger.info(f"任務 {job_id} 已加入佇列，當前佇列大小: {self.queue.qsize()}")
     
+    async def _run_job(self, job_id: str, process_func, args, kwargs) -> None:
+        """在 semaphore 控制下執行單一任務"""
+        async with self.semaphore:
+            self.active_jobs.add(job_id)
+            logger.info(f"開始處理任務 {job_id}，活躍任務數: {len(self.active_jobs)}")
+            try:
+                await process_func(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"處理任務 {job_id} 時發生錯誤: {e}")
+            finally:
+                self.active_jobs.discard(job_id)
+                self.queue.task_done()
+                logger.info(f"任務 {job_id} 處理完成，活躍任務數: {len(self.active_jobs)}")
+
     async def _process_queue(self) -> None:
-        """處理佇列中的任務"""
+        """處理佇列中的任務（每個任務獨立啟動，支援真正的並發）"""
         while True:
             try:
                 # 從佇列取出任務
                 job_id, process_func, args, kwargs = await self.queue.get()
                 
-                # 等待可用槽位
-                async with self.semaphore:
-                    self.active_jobs.add(job_id)
-                    logger.info(f"開始處理任務 {job_id}，活躍任務數: {len(self.active_jobs)}")
-                    
-                    try:
-                        # 執行任務
-                        await process_func(*args, **kwargs)
-                    except Exception as e:
-                        logger.error(f"處理任務 {job_id} 時發生錯誤: {e}")
-                    finally:
-                        self.active_jobs.discard(job_id)
-                        self.queue.task_done()
-                        logger.info(f"任務 {job_id} 處理完成，活躍任務數: {len(self.active_jobs)}")
+                # 以獨立 Task 執行，不阻塞佇列取出下一個任務
+                asyncio.create_task(self._run_job(job_id, process_func, args, kwargs))
             except asyncio.CancelledError:
                 logger.info("佇列處理器收到取消信號")
                 break

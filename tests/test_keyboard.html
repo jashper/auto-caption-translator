@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>鍵盤快捷鍵測試</title>
+    <style>
+        body { margin: 20px; font-family: Arial, sans-serif; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .video-box { 
+            width: 100%; 
+            height: 300px; 
+            background: #000; 
+            margin: 20px 0;
+            position: relative;
+        }
+        video { width: 100%; height: 100%; }
+        .pip-box {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            height: 170px;
+            background: #000;
+            border: 2px solid #fff;
+            display: none;
+        }
+        .pip-box.active { display: block; }
+        .log { 
+            background: #1e293b; 
+            color: #00ff00; 
+            padding: 15px; 
+            font-family: monospace; 
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        button { 
+            padding: 10px 20px; 
+            margin: 5px; 
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .status {
+            padding: 10px;
+            background: #f0f0f0;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>鍵盤快捷鍵測試</h1>
+        
+        <div class="status">
+            <strong>畫中畫狀態：</strong> <span id="pip-status">未啟動</span><br>
+            <strong>控制對象：</strong> <span id="control-target">主視頻</span>
+        </div>
+        
+        <div class="video-box">
+            <video id="main-video" controls>
+                <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+            </video>
+        </div>
+        
+        <div class="pip-box" id="pip-box">
+            <video id="pip-video" controls></video>
+        </div>
+        
+        <div>
+            <button onclick="togglePiP()">切換畫中畫</button>
+            <button onclick="clearLog()">清除日誌</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let pipActive = false;
+        const logDiv = document.getElementById('log');
+        
+        function log(message) {
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(div);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+        
+        function updateStatus() {
+            document.getElementById('pip-status').textContent = pipActive ? '已啟動' : '未啟動';
+            document.getElementById('control-target').textContent = pipActive ? '子畫面（右下角）' : '主視頻';
+        }
+        
+        function togglePiP() {
+            const mainVideo = document.getElementById('main-video');
+            const pipVideo = document.getElementById('pip-video');
+            const pipBox = document.getElementById('pip-box');
+            
+            if (!pipActive) {
+                // 啟動畫中畫
+                pipVideo.src = mainVideo.src;
+                pipVideo.currentTime = mainVideo.currentTime;
+                pipVideo.playbackRate = mainVideo.playbackRate;
+                
+                if (!mainVideo.paused) {
+                    pipVideo.play();
+                }
+                
+                mainVideo.muted = true;
+                mainVideo.pause();
+                
+                pipBox.classList.add('active');
+                pipActive = true;
+                
+                log('✓ 畫中畫已啟動');
+            } else {
+                // 關閉畫中畫
+                mainVideo.currentTime = pipVideo.currentTime;
+                mainVideo.muted = false;
+                
+                if (!pipVideo.paused) {
+                    mainVideo.play();
+                }
+                
+                pipVideo.pause();
+                pipVideo.src = '';
+                
+                pipBox.classList.remove('active');
+                pipActive = false;
+                
+                log('✓ 畫中畫已關閉');
+            }
+            
+            updateStatus();
+        }
+        
+        // 鍵盤快捷鍵
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            // 根據 pipActive 選擇控制對象
+            const activeVideo = pipActive 
+                ? document.getElementById('pip-video') 
+                : document.getElementById('main-video');
+            
+            if (!activeVideo) {
+                log('❌ 找不到活動視頻，pipActive = ' + pipActive);
+                return;
+            }
+            
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    log(`空格鍵按下，pipActive = ${pipActive}，控制: ${pipActive ? '子畫面' : '主視頻'}`);
+                    
+                    if (activeVideo.paused) {
+                        activeVideo.play();
+                        log('✓ 播放');
+                    } else {
+                        activeVideo.pause();
+                        log('✓ 暫停');
+                    }
+                    break;
+                    
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    activeVideo.currentTime = Math.max(0, activeVideo.currentTime - 5);
+                    log('⏪ 後退 5 秒');
+                    break;
+                    
+                case 'ArrowRight':
+                    e.preventDefault();
+                    activeVideo.currentTime = Math.min(activeVideo.duration, activeVideo.currentTime + 5);
+                    log('⏩ 前進 5 秒');
+                    break;
+            }
+        });
+        
+        log('✓ 測試頁面已初始化');
+        log('提示：點擊「切換畫中畫」按鈕，然後按空格鍵測試');
+        updateStatus();
+    </script>
+</body>
+</html>

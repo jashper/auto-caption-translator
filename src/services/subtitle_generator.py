@@ -203,16 +203,72 @@ class SubtitleGenerator:
         millis = int((seconds % 1) * 1000)
         return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
     
-    def merge_subtitles(self, subtitle_paths: List[str], languages: List[str]) -> str:
+    def generate_ass_content(self, segments: List[SubtitleSegment]) -> str:
         """
-        合併多個語言的字幕為單一 SRT 檔案（垂直排列）
+        生成 ASS 格式字幕內容
+        
+        Args:
+            segments: 字幕片段列表
+            
+        Returns:
+            ASS 格式字串
+        """
+        lines = []
+        
+        # Script Info
+        lines.append("[Script Info]")
+        lines.append("ScriptType: v4.00+")
+        lines.append("PlayResX: 1920")
+        lines.append("PlayResY: 1080")
+        lines.append("WrapStyle: 0")
+        lines.append("")
+        
+        # Styles
+        lines.append("[V4+ Styles]")
+        lines.append("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding")
+        lines.append("Style: Default,Arial,56,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,1,2,10,10,30,1")
+        lines.append("")
+        
+        # Events
+        lines.append("[Events]")
+        lines.append("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text")
+        
+        for segment in segments:
+            start = self._format_ass_timestamp(segment.start_time)
+            end = self._format_ass_timestamp(segment.end_time)
+            # ASS 文字中的換行用 \N 表示
+            text = segment.text.replace("\n", "\\N")
+            lines.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}")
+        
+        return "\n".join(lines)
+    
+    def _format_ass_timestamp(self, seconds: float) -> str:
+        """
+        格式化為 ASS 時間戳 (H:MM:SS.cc)
+        
+        Args:
+            seconds: 秒數
+            
+        Returns:
+            ASS 格式時間戳
+        """
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        centisecs = int((seconds % 1) * 100)
+        return f"{hours}:{minutes:02d}:{secs:02d}.{centisecs:02d}"
+    
+    def merge_subtitles(self, subtitle_paths: List[str], languages: List[str], output_format: str = "srt") -> str:
+        """
+        合併多個語言的字幕為單一檔案（垂直排列）
         
         Args:
             subtitle_paths: 字幕檔案路徑列表
             languages: 語言代碼列表（對應順序）
+            output_format: 輸出格式（"srt" 或 "vtt"）
             
         Returns:
-            合併後的 SRT 內容
+            合併後的字幕內容
         """
         try:
             # 解析所有字幕檔案
@@ -224,32 +280,89 @@ class SubtitleGenerator:
             # 確保所有字幕有相同數量的片段
             min_length = min(len(segs) for segs in all_segments)
             
-            # 合併字幕
-            merged_lines = []
-            for i in range(min_length):
-                # 索引
-                merged_lines.append(str(i + 1))
-                
-                # 使用第一個字幕的時間戳
-                segment = all_segments[0][i]
-                start = self._format_srt_timestamp(segment.start_time)
-                end = self._format_srt_timestamp(segment.end_time)
-                merged_lines.append(f"{start} --> {end}")
-                
-                # 合併所有語言的文字（垂直排列）
-                texts = []
-                for segs in all_segments:
-                    if i < len(segs):
-                        texts.append(segs[i].text)
-                
-                merged_lines.append("\n".join(texts))
-                
-                # 空行分隔
-                merged_lines.append("")
-            
-            logger.info(f"已合併 {len(languages)} 種語言的字幕，共 {min_length} 個片段")
-            return "\n".join(merged_lines)
+            # 根據格式生成合併字幕
+            if output_format.lower() == "vtt":
+                return self._merge_to_vtt(all_segments, min_length, languages)
+            else:
+                return self._merge_to_srt(all_segments, min_length, languages)
             
         except Exception as e:
             logger.error(f"合併字幕失敗: {e}")
             raise
+    
+    def _merge_to_srt(self, all_segments: List[List[SubtitleSegment]], min_length: int, languages: List[str]) -> str:
+        """
+        合併字幕為 SRT 格式
+        
+        Args:
+            all_segments: 所有語言的字幕片段列表
+            min_length: 最小片段數量
+            languages: 語言代碼列表
+            
+        Returns:
+            SRT 格式字串
+        """
+        merged_lines = []
+        for i in range(min_length):
+            # 索引
+            merged_lines.append(str(i + 1))
+            
+            # 使用第一個字幕的時間戳
+            segment = all_segments[0][i]
+            start = self._format_srt_timestamp(segment.start_time)
+            end = self._format_srt_timestamp(segment.end_time)
+            merged_lines.append(f"{start} --> {end}")
+            
+            # 合併所有語言的文字（垂直排列）
+            texts = []
+            for segs in all_segments:
+                if i < len(segs):
+                    texts.append(segs[i].text)
+            
+            merged_lines.append("\n".join(texts))
+            
+            # 空行分隔
+            merged_lines.append("")
+        
+        logger.info(f"已合併 {len(languages)} 種語言的字幕為 SRT 格式，共 {min_length} 個片段")
+        return "\n".join(merged_lines)
+    
+    def _merge_to_vtt(self, all_segments: List[List[SubtitleSegment]], min_length: int, languages: List[str]) -> str:
+        """
+        合併字幕為 VTT 格式
+        
+        Args:
+            all_segments: 所有語言的字幕片段列表
+            min_length: 最小片段數量
+            languages: 語言代碼列表
+            
+        Returns:
+            VTT 格式字串
+        """
+        merged_lines = ["WEBVTT", ""]
+        
+        for i in range(min_length):
+            # 索引
+            merged_lines.append(str(i + 1))
+            
+            # 使用第一個字幕的時間戳（VTT 格式）
+            segment = all_segments[0][i]
+            start = segment.format_vtt_timestamp(segment.start_time)
+            end = segment.format_vtt_timestamp(segment.end_time)
+            merged_lines.append(f"{start} --> {end}")
+            
+            # 合併所有語言的文字（垂直排列）
+            texts = []
+            for segs in all_segments:
+                if i < len(segs):
+                    # 轉義 VTT 特殊字元
+                    escaped_text = segment._escape_vtt_text(segs[i].text)
+                    texts.append(escaped_text)
+            
+            merged_lines.append("\n".join(texts))
+            
+            # 空行分隔
+            merged_lines.append("")
+        
+        logger.info(f"已合併 {len(languages)} 種語言的字幕為 VTT 格式，共 {min_length} 個片段")
+        return "\n".join(merged_lines)
